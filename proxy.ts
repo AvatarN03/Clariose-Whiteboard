@@ -6,7 +6,15 @@ const isClerkConfigured =
   !!process.env.CLERK_SECRET_KEY;
 
 export default isClerkConfigured 
-  ? clerkMiddleware() 
+  ? clerkMiddleware(async (auth, req) => {
+      const pathname = req.nextUrl.pathname;
+      const isProtectedRoute =
+        pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+
+      if (isProtectedRoute) {
+        await auth.protect();
+      }
+    })
   : () => NextResponse.next();
 
 export const config = {
