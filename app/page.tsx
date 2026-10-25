@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import {
   Show,
   SignInButton,
   SignUpButton,
 } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { Button } from "@/components/ui/button";
 
 const boardItems = [
   { label: "Research", x: "left-8 top-12", tone: "bg-[#dbeafe]" },
@@ -14,6 +17,24 @@ const boardItems = [
 ];
 
 export default function Home() {
+  return (
+    <Suspense fallback={<LandingPage />}>
+      <AuthenticatedHome />
+    </Suspense>
+  );
+}
+
+async function AuthenticatedHome() {
+  const { isAuthenticated } = await auth();
+
+  if (isAuthenticated) {
+    redirect("/dashboard");
+  }
+
+  return <LandingPage />;
+}
+
+function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#1d1d1b]">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
@@ -28,14 +49,14 @@ export default function Home() {
           <Suspense fallback={null}>
             <Show when="signed-out">
             <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-              <button className="rounded-lg px-3 py-2 text-sm font-medium text-[#55534e] transition hover:bg-black/5 hover:text-[#1d1d1b]">
+              <Button variant="ghost" className="text-[#55534e] hover:bg-black/5 hover:text-[#1d1d1b]">
                 Sign in
-              </button>
+              </Button>
             </SignInButton>
             <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-              <button className="rounded-lg bg-[#1d1d1b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#3b3a36]">
+              <Button className="bg-[#1d1d1b] px-4 text-sm text-white hover:bg-[#3b3a36]">
                 Start a board
-              </button>
+              </Button>
             </SignUpButton>
             </Show>
             <Show when="signed-in">
@@ -67,9 +88,9 @@ export default function Home() {
             <Suspense fallback={null}>
               <Show when="signed-out">
                 <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                  <button className="rounded-lg bg-[#ec6338] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#d9562d]">
+                  <Button size="lg" className="h-11 bg-[#ec6338] px-5 text-sm font-semibold text-white hover:bg-[#d9562d]">
                     Make your first board
-                  </button>
+                  </Button>
                 </SignUpButton>
               </Show>
               <Show when="signed-in">

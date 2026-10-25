@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
+import { Button } from "@/components/ui/button";
+import { Message, MessageContent, MessageGroup, MessageHeader } from "@/components/ui/message";
 
 export default function DashboardPage() {
   return (
@@ -27,10 +29,28 @@ async function DashboardContent() {
           <p className="mt-2 text-sm leading-6 text-[#756f65]">
             This is the dashboard boilerplate. Board creation and collaboration can be added here next.
           </p>
-          <button className="mt-6 rounded-lg bg-[#1d1d1b] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#3b3a36]">
+          <Button className="mt-6 bg-[#1d1d1b] text-sm text-white hover:bg-[#3b3a36]">
             Create board
-          </button>
+          </Button>
         </div>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-[#ded9cf] bg-white p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9b9489]">AI helper</p>
+            <h2 className="font-board mt-2 text-2xl font-semibold tracking-[-0.03em]">A quiet place to start.</h2>
+          </div>
+          <span className="rounded-full bg-[#f3f0e9] px-3 py-1 text-xs text-[#756f65]">Coming next</span>
+        </div>
+        <MessageGroup className="mt-6 max-w-xl">
+          <Message>
+            <MessageContent className="rounded-xl bg-[#f8f7f4] p-4 text-[#615f59]">
+              <MessageHeader className="px-0 text-[#1d1d1b]">Agente</MessageHeader>
+              Tell me what you are trying to make sense of, and we will give the first few thoughts a shape.
+            </MessageContent>
+          </Message>
+        </MessageGroup>
       </section>
     </main>
   );
