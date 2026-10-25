@@ -1,0 +1,133 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import {
+  Show,
+  SignInButton,
+  SignUpButton,
+} from "@clerk/nextjs";
+
+const boardItems = [
+  { label: "Research", x: "left-8 top-12", tone: "bg-[#dbeafe]" },
+  { label: "Clarify scope", x: "left-[38%] top-20", tone: "bg-[#fef3c7]" },
+  { label: "Decide", x: "right-10 top-10", tone: "bg-[#dcfce7]" },
+  { label: "Ship a first pass", x: "bottom-10 left-[44%]", tone: "bg-[#fae8ff]" },
+];
+
+export default function Home() {
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#1d1d1b]">
+      <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="Agente home">
+          <span className="grid size-9 place-items-center rounded-xl bg-[#1d1d1b] text-sm font-bold text-white">
+            A
+          </span>
+          <span className="text-base font-semibold tracking-[-0.03em]">Agente</span>
+        </Link>
+
+        <nav className="flex items-center gap-3">
+          <Suspense fallback={null}>
+            <Show when="signed-out">
+            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+              <button className="rounded-lg px-3 py-2 text-sm font-medium text-[#55534e] transition hover:bg-black/5 hover:text-[#1d1d1b]">
+                Sign in
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+              <button className="rounded-lg bg-[#1d1d1b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#3b3a36]">
+                Start a board
+              </button>
+            </SignUpButton>
+            </Show>
+            <Show when="signed-in">
+              <Link
+                href="/dashboard"
+                className="rounded-lg bg-[#1d1d1b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#3b3a36]"
+              >
+                Open dashboard
+              </Link>
+            </Show>
+          </Suspense>
+        </nav>
+      </header>
+
+      <section className="mx-auto grid w-full max-w-7xl gap-14 px-6 pb-16 pt-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-10 lg:pb-24 lg:pt-20">
+        <div className="max-w-xl">
+          <p className="mb-6 text-sm font-medium text-[#756f65]">A clear place to think together</p>
+          <h1 className="font-board text-5xl font-semibold leading-[0.98] tracking-[-0.065em] sm:text-6xl lg:text-7xl">
+            Ideas need room
+            <br />
+            to become useful.
+          </h1>
+          <p className="mt-7 max-w-md text-lg leading-8 text-[#615f59]">
+            Agente is a wide, shared board for untangling the work in front of you.
+            Start messy. Keep what matters. Make the next decision obvious.
+          </p>
+
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <Suspense fallback={null}>
+              <Show when="signed-out">
+                <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                  <button className="rounded-lg bg-[#ec6338] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#d9562d]">
+                    Make your first board
+                  </button>
+                </SignUpButton>
+              </Show>
+              <Show when="signed-in">
+                <Link
+                  href="/dashboard"
+                  className="rounded-lg bg-[#ec6338] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#d9562d]"
+                >
+                  Go to your dashboard
+                </Link>
+              </Show>
+            </Suspense>
+            <span className="text-sm text-[#756f65]">Free to start. No card needed.</span>
+          </div>
+        </div>
+
+        <div className="relative mx-auto w-full max-w-2xl">
+          <div className="rounded-2xl border border-[#d9d4ca] bg-white p-3 shadow-[0_24px_60px_-34px_rgba(57,50,38,0.38)] sm:p-4">
+            <div className="flex items-center justify-between border-b border-[#ebe7df] px-2 pb-3">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-[#e9a99a]" />
+                <span className="size-2 rounded-full bg-[#ebcb7e]" />
+                <span className="size-2 rounded-full bg-[#91c9a6]" />
+              </div>
+              <span className="text-xs font-medium text-[#756f65]">Q3 planning board</span>
+              <span className="rounded-md bg-[#f2f0eb] px-2 py-1 text-[10px] font-semibold text-[#615f59]">
+                4 people
+              </span>
+            </div>
+
+            <div className="relative mt-3 h-[340px] overflow-hidden rounded-xl border border-[#eeeae2] bg-[#fcfbf8] sm:h-[390px]">
+              <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(#d8d3ca_1px,transparent_1px)] [background-size:18px_18px]" />
+              <svg
+                aria-hidden="true"
+                className="absolute inset-0 size-full"
+                viewBox="0 0 700 390"
+                preserveAspectRatio="none"
+              >
+                <path d="M138 102 C215 100, 232 130, 300 147" fill="none" stroke="#aaa398" strokeWidth="1.5" />
+                <path d="M390 154 C472 145, 488 110, 554 103" fill="none" stroke="#aaa398" strokeWidth="1.5" />
+                <path d="M355 195 C364 245, 374 260, 390 295" fill="none" stroke="#aaa398" strokeWidth="1.5" />
+              </svg>
+              {boardItems.map((item) => (
+                <div
+                  key={item.label}
+                  className={`absolute ${item.x} ${item.tone} rounded-lg border border-black/5 px-3 py-2.5 text-xs font-semibold shadow-sm sm:px-4 sm:py-3 sm:text-sm`}
+                >
+                  {item.label}
+                </div>
+              ))}
+              <div className="absolute bottom-5 left-6 rounded-lg border border-[#d9d4ca] bg-white px-3 py-2 text-xs text-[#615f59] shadow-sm">
+                <span className="mr-2 inline-block size-2 rounded-full bg-[#ec6338]" />
+                Notes are getting organized
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 text-center text-xs text-[#8a847a]">One board, one shared picture of the work.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
