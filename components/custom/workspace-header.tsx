@@ -23,7 +23,7 @@ export function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   const toastManager = useToastManager();
 
-  function showToast(action: "shared") {
+  function showToast() {
     toastManager.add({
       title: "Share link ready",
       description: "Sharing is ready in this demo workspace.",
@@ -84,7 +84,7 @@ export function WorkspaceHeader({
         <button
           type="button"
           className="cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3b3a36]"
-          onClick={() => showToast("shared")}
+          onClick={showToast}
         >
           Share
         </button>
