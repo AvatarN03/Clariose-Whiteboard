@@ -1,6 +1,7 @@
 import {
   foreignKey,
   integer,
+  jsonb,
   pgTable,
   serial,
   text,
@@ -51,4 +52,14 @@ export const boards = pgTable("boards", {
   createdAt: timestamp("created_at", { mode: "string" })
     .defaultNow()
     .notNull(),
+});
+
+export const whiteboardData = pgTable("whiteboardData", {
+  id: serial("id").primaryKey(),
+  projectId: varchar("projectId")
+    .notNull()
+    .references(() => boards.projectId),
+  elements: jsonb("elements"),
+  appState: jsonb("appState"),
+  files: jsonb("files"),
 });

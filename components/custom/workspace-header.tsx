@@ -1,23 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import * as React from "react";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { useToastManager } from "@/components/ui/toast";
 
-type WorkspaceTab = "whiteboard" | "docs";
+export type WorkspaceTab = "whiteboard" | "docs";
 
-export function WorkspaceHeader() {
-  const [activeTab, setActiveTab] = React.useState<WorkspaceTab>("whiteboard");
+type WorkspaceHeaderProps = {
+  activeTab: WorkspaceTab;
+  onTabChange: (tab: WorkspaceTab) => void;
+  onSave: () => Promise<boolean>;
+  onRequestLeave: () => void;
+  isSaving: boolean;
+};
+
+export function WorkspaceHeader({
+  activeTab,
+  onTabChange,
+  onSave,
+  onRequestLeave,
+  isSaving,
+}: WorkspaceHeaderProps) {
   const toastManager = useToastManager();
 
-  function showDemoToast(action: "saved" | "shared") {
+  function showToast(action: "shared") {
     toastManager.add({
-      title: action === "saved" ? "Workspace saved" : "Share link ready",
-      description:
-        action === "saved"
-          ? "Your whiteboard has been saved in this demo."
-          : "Sharing is ready in this demo workspace.",
+      title: "Share link ready",
+      description: "Sharing is ready in this demo workspace.",
       type: "success",
     });
   }
@@ -28,6 +37,10 @@ export function WorkspaceHeader() {
         href="/dashboard"
         className="shrink-0 cursor-pointer"
         aria-label="Go to dashboard"
+        onClick={(event) => {
+          event.preventDefault();
+          onRequestLeave();
+        }}
       >
         <span className="font-board text-lg font-semibold">Agente</span>
       </Link>
@@ -43,7 +56,7 @@ export function WorkspaceHeader() {
                 : "text-[#756f65] hover:text-[#1d1d1b]"
             }`}
             aria-pressed={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => onTabChange(tab)}
           >
             {tab}
           </button>
@@ -53,15 +66,25 @@ export function WorkspaceHeader() {
       <ButtonGroup className="shrink-0 gap-2">
         <button
           type="button"
+          disabled={isSaving}
           className="cursor-pointer rounded-lg bg-[#ec6338] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#d9562d]"
-          onClick={() => showDemoToast("saved")}
+          onClick={async () => {
+            const saved = await onSave();
+            toastManager.add({
+              title: saved ? "Workspace saved" : "Workspace not saved",
+              description: saved
+                ? "Your whiteboard was saved to the database."
+                : "The whiteboard is still loading. Try saving again.",
+              type: saved ? "success" : "error",
+            });
+          }}
         >
-          Save
+          {isSaving ? "Saving..." : "Save"}
         </button>
         <button
           type="button"
           className="cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3b3a36]"
-          onClick={() => showDemoToast("shared")}
+          onClick={() => showToast("shared")}
         >
           Share
         </button>
