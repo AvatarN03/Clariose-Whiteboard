@@ -134,4 +134,14 @@
   .font-board {
     font-family: var(--font-board);
   }
+
+  .app-sidebar-create-button {
+    cursor: pointer !important;
+    background-color: #ec6338 !important;
+    color: white !important;
+  }
+
+  .app-sidebar-create-button:hover {
+    background-color: #d9562d !important;
+  }
 }
