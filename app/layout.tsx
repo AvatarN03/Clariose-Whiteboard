@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
+import { Toaster } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           signUpForceRedirectUrl="/dashboard"
           dynamic
         >
-          {children}
+          <Toaster>{children}</Toaster>
         </ClerkProvider>
       </body>
     </html>

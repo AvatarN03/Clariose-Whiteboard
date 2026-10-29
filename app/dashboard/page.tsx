@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { Button } from "@/components/ui/button";
 import { Message, MessageContent, MessageGroup, MessageHeader } from "@/components/ui/message";
+import { CreateBoardDialog } from "@/components/custom/create-board-dialog";
 
 export default function DashboardPage() {
   return (
@@ -29,9 +30,13 @@ async function DashboardContent() {
           <p className="mt-2 text-sm leading-6 text-[#756f65]">
             This is the dashboard boilerplate. Board creation and collaboration can be added here next.
           </p>
-          <Button className="mt-6 bg-[#1d1d1b] text-sm text-white hover:bg-[#3b3a36]">
-            Create board
-          </Button>
+          <CreateBoardDialog
+            trigger={
+              <Button className="mt-6 bg-[#1d1d1b] text-sm text-white hover:bg-[#3b3a36]">
+                Create board
+              </Button>
+            }
+          />
         </div>
       </section>
 

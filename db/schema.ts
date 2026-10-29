@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   unique,
+  varchar,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable(
@@ -41,3 +42,13 @@ export const posts = pgTable(
     }),
   ],
 );
+
+export const boards = pgTable("boards", {
+  id: serial().primaryKey().notNull(),
+  projectId: varchar("projectId").notNull().unique(),
+  projectName: varchar("projectName").notNull(),
+  userEmail: varchar("userEmail").notNull(),
+  createdAt: timestamp("created_at", { mode: "string" })
+    .defaultNow()
+    .notNull(),
+});

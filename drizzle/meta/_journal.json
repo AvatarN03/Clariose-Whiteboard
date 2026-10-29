@@ -8,6 +8,13 @@
       "when": 1792916639537,
       "tag": "0000_chilly_violations",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793289470388,
+      "tag": "0001_supreme_gravity",
+      "breakpoints": true
     }
   ]
 }

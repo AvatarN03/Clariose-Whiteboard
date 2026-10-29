@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { UserButton } from "@clerk/nextjs";
+import { CreateBoardDialog } from "@/components/custom/create-board-dialog";
 
 type SidebarLink = {
   label: string;
@@ -59,15 +60,19 @@ export function AppSidebar() {
         </Link>
         <SidebarMenu className="mt-5">
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              tooltip="Create board"
-              className="cursor-pointer justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
-              render={<Button className="app-sidebar-create-button w-full" />}
-            >
-              <Plus size={17} strokeWidth={2.5} />
-              <span className="group-data-[collapsible=icon]:hidden">Create board</span>
-            </SidebarMenuButton>
+            <CreateBoardDialog
+              trigger={
+                <SidebarMenuButton
+                  size="lg"
+                  tooltip="Create board"
+                  className="cursor-pointer justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
+                  render={<Button className="app-sidebar-create-button w-full" />}
+                >
+                  <Plus size={17} strokeWidth={2.5} />
+                  <span className="group-data-[collapsible=icon]:hidden">Create board</span>
+                </SidebarMenuButton>
+              }
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
