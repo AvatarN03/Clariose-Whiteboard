@@ -88,7 +88,7 @@ export function CreateBoardDialog({ trigger }: CreateBoardDialogProps) {
       });
       setOpen(false);
       setName("");
-      router.push(`/dashboard/${projectId}`);
+      router.push(`/workspace/${projectId}`);
     } catch {
       toastManager.add({
         title: "Could not create board",
