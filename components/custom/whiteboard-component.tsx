@@ -136,7 +136,6 @@ export const WhiteboardComponent = React.forwardRef<
 
     const blankScene: ExcalidrawInitialDataState = {
       appState: {
-        theme: "light",
         viewBackgroundColor: "#f8f7f4",
         name: `whiteboard-${projectId}`,
       },
