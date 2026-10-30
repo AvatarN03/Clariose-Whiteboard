@@ -32,7 +32,7 @@ export function WorkspaceHeader({
   }
 
   return (
-    <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-[#ded9cf] bg-white px-4 sm:px-6">
+    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-[#ded9cf] bg-white px-4 sm:px-6">
       <Link
         href="/dashboard"
         className="shrink-0 cursor-pointer"

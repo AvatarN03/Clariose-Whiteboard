@@ -3,6 +3,25 @@
 @import "shadcn/tailwind.css";
 @import "@clerk/ui/themes/shadcn.css";
 
+.workspace-whiteboard .App-toolbar {
+  display: none;
+}
+
+.workspace-whiteboard
+  .dropdown-menu-group:has(a[href*="github.com/excalidraw"]) {
+  display: none;
+}
+
+.workspace-whiteboard
+  .dropdown-menu-separator:has(
+    + .dropdown-menu-group:has(a[href*="github.com/excalidraw"])
+  ),
+.workspace-whiteboard
+  .dropdown-menu-group:has(a[href*="github.com/excalidraw"])
+  + .dropdown-menu-separator {
+  display: none;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

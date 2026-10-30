@@ -81,7 +81,7 @@ export function WorkspaceView({ projectId }: WorkspaceViewProps) {
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#f8f7f4] text-[#1d1d1b]">
+    <main className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#f8f7f4] text-[#1d1d1b]">
       <WorkspaceHeader
         activeTab={activeTab}
         onTabChange={setActiveTab}

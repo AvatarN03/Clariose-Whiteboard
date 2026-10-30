@@ -10,8 +10,30 @@ import type {
   AppState,
   BinaryFiles,
   ExcalidrawInitialDataState,
+  ExcalidrawImperativeAPI,
+  ToolType,
 } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import {
+  ArrowDownRight,
+  Circle,
+  Diamond,
+  Eraser,
+  Hand,
+  Image,
+  Minus,
+  MousePointer2,
+  Pencil,
+  Square,
+  Type,
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Kbd } from "@/components/ui/kbd";
 import "@excalidraw/excalidraw/index.css";
 
 const Excalidraw = dynamic(
@@ -37,6 +59,25 @@ export type SceneSnapshot = {
   files: BinaryFiles;
 };
 
+const drawingTools: Array<{
+  type: Exclude<ToolType, "image"> | "image";
+  label: string;
+  shortcut: string;
+  icon: typeof MousePointer2;
+}> = [
+  { type: "selection", label: "Select", shortcut: "V", icon: MousePointer2 },
+  { type: "rectangle", label: "Rectangle", shortcut: "R", icon: Square },
+  { type: "diamond", label: "Diamond", shortcut: "D", icon: Diamond },
+  { type: "ellipse", label: "Ellipse", shortcut: "O", icon: Circle },
+  { type: "arrow", label: "Arrow", shortcut: "A", icon: ArrowDownRight },
+  { type: "line", label: "Line", shortcut: "L", icon: Minus },
+  { type: "freedraw", label: "Draw", shortcut: "P", icon: Pencil },
+  { type: "text", label: "Text", shortcut: "T", icon: Type },
+  { type: "image", label: "Image", shortcut: "9", icon: Image },
+  { type: "eraser", label: "Eraser", shortcut: "E", icon: Eraser },
+  { type: "hand", label: "Hand", shortcut: "H", icon: Hand },
+];
+
 export const WhiteboardComponent = React.forwardRef<
   WhiteboardComponentHandle,
   WhiteboardComponentProps
@@ -48,6 +89,10 @@ export const WhiteboardComponent = React.forwardRef<
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasUnsyncedChangesRef = React.useRef(false);
   const syncedStorageKey = `${storageKey}:synced`;
+  const [excalidrawApi, setExcalidrawApi] =
+    React.useState<ExcalidrawImperativeAPI | null>(null);
+  const [activeTool, setActiveTool] =
+    React.useState<AppState["activeTool"]["type"]>("selection");
 
   const saveScene = React.useCallback(() => {
     const scene = sceneRef.current;
@@ -118,6 +163,7 @@ export const WhiteboardComponent = React.forwardRef<
     files: BinaryFiles,
   ) {
     sceneRef.current = { elements, appState, files };
+    setActiveTool(appState.activeTool.type);
     hasUnsyncedChangesRef.current = true;
 
     if (saveTimerRef.current) {
@@ -162,16 +208,56 @@ export const WhiteboardComponent = React.forwardRef<
 
   if (!initialData) {
     return (
-      <section className="relative min-h-[calc(100vh-3.5rem)] flex-1 overflow-hidden bg-[#f8f7f4]" />
+      <section className="relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-[#f8f7f4]" />
     );
   }
 
   return (
-    <section className="relative min-h-[calc(100vh-3.5rem)] flex-1 overflow-hidden bg-[#f8f7f4]">
+    <section className="workspace-whiteboard relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-[#f8f7f4]">
+      <TooltipProvider>
+        <aside
+          aria-label="Whiteboard tools"
+          className="absolute right-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-[#ded9cf] bg-white/95 p-1.5 shadow-sm backdrop-blur-sm"
+        >
+          {drawingTools.map(({ type, label, shortcut, icon: Icon }) => (
+            <Tooltip key={type}>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={activeTool === type}
+                    className={`flex size-9 cursor-pointer items-center justify-center rounded-lg transition-colors ${
+                      activeTool === type
+                        ? "bg-[#1d1d1b] text-white"
+                        : "text-[#756f65] hover:bg-[#f1eee8] hover:text-[#1d1d1b]"
+                    }`}
+                    onClick={() => {
+                      excalidrawApi?.setActiveTool({
+                        type,
+                        ...(type === "image"
+                          ? { insertOnCanvasDirectly: false }
+                          : {}),
+                      });
+                    }}
+                  />
+                }
+              >
+                <Icon className="size-4" />
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                {label}
+                <Kbd>{shortcut}</Kbd>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </aside>
+      </TooltipProvider>
       <div className="absolute inset-0">
         <Excalidraw
           initialData={initialData}
           onChange={handleChange}
+          excalidrawAPI={setExcalidrawApi}
           UIOptions={{
             canvasActions: {
               changeViewBackgroundColor: false,
