@@ -1,9 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { DashboardPlaceholder } from "@/components/custom/dashboard-placeholder";
 
 export default async function AiHelperPage() {
-  await auth.protect();
-
   return (
     <DashboardPlaceholder
       eyebrow="AI helper"

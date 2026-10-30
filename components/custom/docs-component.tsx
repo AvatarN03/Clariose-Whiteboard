@@ -7,7 +7,7 @@ type DocsComponentProps = {
 export function DocsComponent({ projectId }: DocsComponentProps) {
   return (
     <section className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-1 items-center justify-center bg-[#fff8f1] p-8">
-      <div className="w-full max-w-lg rounded-3xl border border-[#ead8c7] bg-white p-8 shadow-sm">
+      <div className="w-full max-w-lg rounded-3xl border border-border bg-card p-8 shadow-sm">
         <div className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-[#fff0df] text-2xl">
           Aa
         </div>

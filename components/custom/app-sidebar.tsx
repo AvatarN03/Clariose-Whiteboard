@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { UserButton } from "@clerk/nextjs";
 import { CreateBoardDialog } from "@/components/custom/create-board-dialog";
+import { BrandLogo } from "@/components/custom/brand-logo";
 
 type SidebarLink = {
   label: string;
@@ -42,7 +43,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon" className="border-[#ded9cf] bg-[#f3f0e9]">
+    <Sidebar collapsible="icon" className="border-border bg-sidebar text-sidebar-foreground">
       <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
         <Link
           href="/dashboard"
@@ -50,13 +51,7 @@ export function AppSidebar() {
           title="Go to dashboard"
           className="flex items-center justify-start gap-2.5 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
-          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#1d1d1b] text-white" aria-hidden="true">
-            <svg viewBox="0 0 24 24" className="size-5" fill="none">
-              <path d="M5 7.5 12 4l7 3.5v9L12 20l-7-3.5v-9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-              <path d="m5.5 8 6.5 3.5L18.5 8M12 11.5V20" stroke="#ec6338" strokeWidth="1.7" strokeLinejoin="round" />
-            </svg>
-          </span>
-          <span className="font-board text-lg font-semibold tracking-[-0.03em] group-data-[collapsible=icon]:hidden">Agente</span>
+          <BrandLogo nameClassName="group-data-[collapsible=icon]:hidden" />
         </Link>
         <SidebarMenu className="mt-5">
           <SidebarMenuItem>
@@ -82,10 +77,10 @@ export function AppSidebar() {
         <SidebarSection label="Tools" links={utilityLinks} pathname={pathname} />
       </SidebarContent>
 
-      <SidebarFooter className="rounded-t-2xl bg-[#1d1d1b] p-3 text-white group-data-[collapsible=icon]:p-2">
-        <SidebarSeparator className="mb-3 bg-white/15" />
+      <SidebarFooter className="rounded-t-2xl bg-sidebar-primary p-3 text-sidebar-primary-foreground group-data-[collapsible=icon]:p-2">
+        <SidebarSeparator className="mb-3 bg-sidebar-primary-foreground/15" />
         <div className="flex min-h-9 items-center justify-between gap-3 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <span className="text-xs font-medium text-white/70 group-data-[collapsible=icon]:hidden">Account</span>
+          <span className="text-xs font-medium text-sidebar-primary-foreground/70 group-data-[collapsible=icon]:hidden">Account</span>
           <UserButton />
         </div>
       </SidebarFooter>
@@ -112,7 +107,7 @@ function SidebarSection({
               <SidebarMenuButton
                 isActive={pathname === href}
                 tooltip={linkLabel}
-                className="cursor-pointer justify-start data-active:bg-[#ec6338] data-active:text-white data-active:hover:bg-[#d9562d] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:hover:bg-[#e7e2d9] group-data-[collapsible=icon]:data-active:bg-[#ec6338] group-data-[collapsible=icon]:data-active:hover:bg-[#d9562d]"
+                className="cursor-pointer justify-start data-active:bg-[#ec6338] data-active:text-white data-active:hover:bg-[#d9562d] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent group-data-[collapsible=icon]:data-active:bg-[#ec6338] group-data-[collapsible=icon]:data-active:hover:bg-[#d9562d]"
                 render={<Link href={href} aria-label={linkLabel} />}
               >
                 <Icon />

@@ -1,9 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { DashboardPlaceholder } from "@/components/custom/dashboard-placeholder";
 
 export default async function SharedPage() {
-  await auth.protect();
-
   return (
     <DashboardPlaceholder
       eyebrow="Shared"

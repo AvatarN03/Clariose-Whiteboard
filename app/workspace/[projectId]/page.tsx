@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { Suspense } from "react";
 import { WorkspaceView } from "@/components/custom/workspace-view";
+import { AuthGate } from "@/components/custom/auth-gate";
 
 type WorkspacePageProps = {
   params: Promise<{
@@ -19,8 +19,13 @@ export default function WorkspacePage(props: WorkspacePageProps) {
 async function WorkspaceContent({
   params,
 }: WorkspacePageProps) {
-  await auth.protect();
   const { projectId } = await params;
 
-  return <WorkspaceView projectId={projectId} />;
+  return (
+    <Suspense fallback={null}>
+      <AuthGate>
+        <WorkspaceView projectId={projectId} />
+      </AuthGate>
+    </Suspense>
+  );
 }

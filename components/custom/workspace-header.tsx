@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { useToastManager } from "@/components/ui/toast";
+import { BrandLogo } from "@/components/custom/brand-logo";
+import { ThemeToggle } from "@/components/custom/theme-toggle";
 
 export type WorkspaceTab = "whiteboard" | "docs";
 
@@ -32,7 +34,7 @@ export function WorkspaceHeader({
   }
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-[#ded9cf] bg-white px-4 sm:px-6">
+    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 text-foreground sm:px-6">
       <Link
         href="/dashboard"
         className="shrink-0 cursor-pointer"
@@ -42,18 +44,18 @@ export function WorkspaceHeader({
           onRequestLeave();
         }}
       >
-        <span className="font-board text-lg font-semibold">Agente</span>
+        <BrandLogo nameClassName="text-lg" />
       </Link>
 
-      <div className="absolute left-1/2 flex -translate-x-1/2 rounded-lg border border-[#ded9cf] bg-[#f8f7f4] p-1">
+      <div className="absolute left-1/2 flex -translate-x-1/2 rounded-lg border border-border bg-muted p-1">
         {(["whiteboard", "docs"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
               activeTab === tab
-                ? "bg-white text-[#1d1d1b] shadow-sm"
-                : "text-[#756f65] hover:text-[#1d1d1b]"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
             aria-pressed={activeTab === tab}
             onClick={() => onTabChange(tab)}
@@ -64,6 +66,7 @@ export function WorkspaceHeader({
       </div>
 
       <ButtonGroup className="shrink-0 gap-2">
+        <ThemeToggle />
         <button
           type="button"
           disabled={isSaving}

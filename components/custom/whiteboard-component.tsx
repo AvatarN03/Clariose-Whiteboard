@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
+import { useTheme } from "next-themes";
 import {
   restore,
   serializeAsJSON,
@@ -91,6 +92,7 @@ export const WhiteboardComponent = React.forwardRef<
   const syncedStorageKey = `${storageKey}:synced`;
   const [excalidrawApi, setExcalidrawApi] =
     React.useState<ExcalidrawImperativeAPI | null>(null);
+  const { resolvedTheme } = useTheme();
   const [activeTool, setActiveTool] =
     React.useState<AppState["activeTool"]["type"]>("selection");
 
@@ -134,6 +136,7 @@ export const WhiteboardComponent = React.forwardRef<
 
     const blankScene: ExcalidrawInitialDataState = {
       appState: {
+        theme: "light",
         viewBackgroundColor: "#f8f7f4",
         name: `whiteboard-${projectId}`,
       },
@@ -156,6 +159,19 @@ export const WhiteboardComponent = React.forwardRef<
     },
     [saveScene],
   );
+
+  React.useEffect(() => {
+    if (!excalidrawApi) {
+      return;
+    }
+
+    excalidrawApi.updateScene({
+      appState: {
+        theme: resolvedTheme === "dark" ? "dark" : "light",
+        viewBackgroundColor: resolvedTheme === "dark" ? "#1f1f1f" : "#f8f7f4",
+      },
+    });
+  }, [excalidrawApi, resolvedTheme]);
 
   function handleChange(
     elements: readonly ExcalidrawElement[],
@@ -208,16 +224,16 @@ export const WhiteboardComponent = React.forwardRef<
 
   if (!initialData) {
     return (
-      <section className="relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-[#f8f7f4]" />
+      <section className="relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-background" />
     );
   }
 
   return (
-    <section className="workspace-whiteboard relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-[#f8f7f4]">
+    <section className="workspace-whiteboard relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-background">
       <TooltipProvider>
         <aside
           aria-label="Whiteboard tools"
-          className="absolute right-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-[#ded9cf] bg-white/95 p-1.5 shadow-sm backdrop-blur-sm"
+          className="whiteboard-custom-toolbar absolute left-2 right-2 top-2 z-10 flex max-w-[calc(100%-1rem)] flex-row gap-1 overflow-x-auto rounded-xl border border-border bg-card/95 p-1.5 shadow-sm backdrop-blur-sm md:left-auto md:right-4 md:top-1/2 md:max-w-none md:-translate-y-1/2 md:flex-col"
         >
           {drawingTools.map(({ type, label, shortcut, icon: Icon }) => (
             <Tooltip key={type}>
@@ -227,10 +243,10 @@ export const WhiteboardComponent = React.forwardRef<
                     type="button"
                     aria-label={label}
                     aria-pressed={activeTool === type}
-                    className={`flex size-9 cursor-pointer items-center justify-center rounded-lg transition-colors ${
+                    className={`flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors ${
                       activeTool === type
                         ? "bg-[#1d1d1b] text-white"
-                        : "text-[#756f65] hover:bg-[#f1eee8] hover:text-[#1d1d1b]"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
                     }`}
                     onClick={() => {
                       excalidrawApi?.setActiveTool({

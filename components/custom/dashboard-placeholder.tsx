@@ -17,9 +17,9 @@ export function DashboardPlaceholder({
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-10">
       <p className="text-sm font-medium text-[#756f65]">{eyebrow}</p>
       <h1 className="font-board mt-2 text-4xl font-semibold tracking-[-0.05em]">{title}</h1>
-      <p className="mt-3 max-w-lg text-[#615f59]">{description}</p>
+      <p className="mt-3 max-w-lg text-muted-foreground">{description}</p>
 
-      <section className="mt-10 rounded-2xl border border-dashed border-[#ccc5ba] bg-white p-8 sm:p-12">
+      <section className="mt-10 rounded-2xl border border-dashed border-border bg-card p-8 sm:p-12">
         <div className="max-w-md">
           <span className="grid size-10 place-items-center rounded-xl bg-[#f3f0ea] text-xl text-[#ec6338]">+</span>
           <h2 className="font-board mt-5 text-xl font-semibold tracking-[-0.03em]">{actionLabel}</h2>

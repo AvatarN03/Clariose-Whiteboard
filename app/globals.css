@@ -3,23 +3,47 @@
 @import "shadcn/tailwind.css";
 @import "@clerk/ui/themes/shadcn.css";
 
-.workspace-whiteboard .App-toolbar {
+.whiteboard-custom-toolbar {
+  scrollbar-width: none;
+}
+
+.whiteboard-custom-toolbar::-webkit-scrollbar {
   display: none;
 }
 
-.workspace-whiteboard
-  .dropdown-menu-group:has(a[href*="github.com/excalidraw"]) {
-  display: none;
+.workspace-whiteboard .excalidraw .App-toolbar,
+.workspace-whiteboard .excalidraw .App-toolbar-container {
+  display: none !important;
 }
 
 .workspace-whiteboard
+  .excalidraw
+  .dropdown-menu-group:has(
+    a[href*="github.com/excalidraw"],
+    a[href*="x.com/excalidraw"],
+    a[href*="discord.gg"]
+  ) {
+  display: none !important;
+}
+
+.workspace-whiteboard
+  .excalidraw
   .dropdown-menu-separator:has(
-    + .dropdown-menu-group:has(a[href*="github.com/excalidraw"])
+    + .dropdown-menu-group:has(
+      a[href*="github.com/excalidraw"],
+      a[href*="x.com/excalidraw"],
+      a[href*="discord.gg"]
+    )
   ),
 .workspace-whiteboard
-  .dropdown-menu-group:has(a[href*="github.com/excalidraw"])
+  .excalidraw
+  .dropdown-menu-group:has(
+    a[href*="github.com/excalidraw"],
+    a[href*="x.com/excalidraw"],
+    a[href*="discord.gg"]
+  )
   + .dropdown-menu-separator {
-  display: none;
+  display: none !important;
 }
 
 @custom-variant dark (&:is(.dark *));

@@ -2,25 +2,28 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import { Toaster } from "@/components/ui/toast";
+import { ThemeProvider } from "@/components/custom/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Agente | Think clearly, together",
+  title: "Clariose | Think clearly, together",
   description: "A shared whiteboard for turning ideas into useful next steps.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="antialiased">
+    <html lang="en" className="antialiased" suppressHydrationWarning>
       <body>
-        <ClerkProvider
-          appearance={{ theme: shadcn }}
-          signInForceRedirectUrl="/dashboard"
-          signUpForceRedirectUrl="/dashboard"
-          dynamic
-        >
-          <Toaster>{children}</Toaster>
-        </ClerkProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ClerkProvider
+            appearance={{ theme: shadcn }}
+            signInForceRedirectUrl="/dashboard"
+            signUpForceRedirectUrl="/dashboard"
+            dynamic
+          >
+            <Toaster>{children}</Toaster>
+          </ClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

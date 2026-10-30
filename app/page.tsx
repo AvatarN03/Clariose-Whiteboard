@@ -8,6 +8,7 @@ import {
 } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/custom/brand-logo";
 
 const boardItems = [
   { label: "Research", x: "left-8 top-12", tone: "bg-[#dbeafe]" },
@@ -38,11 +39,8 @@ function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#1d1d1b]">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Agente home">
-          <span className="grid size-9 place-items-center rounded-xl bg-[#1d1d1b] text-sm font-bold text-white">
-            A
-          </span>
-          <span className="text-base font-semibold tracking-[-0.03em]">Agente</span>
+        <Link href="/" className="flex items-center gap-2.5" aria-label="Clariose home">
+          <BrandLogo nameClassName="text-base" />
         </Link>
 
         <nav className="flex items-center gap-3">
@@ -80,7 +78,7 @@ function LandingPage() {
             to become useful.
           </h1>
           <p className="mt-7 max-w-md text-lg leading-8 text-[#615f59]">
-            Agente is a wide, shared board for untangling the work in front of you.
+            Clariose is a wide, shared board for untangling the work in front of you.
             Start messy. Keep what matters. Make the next decision obvious.
           </p>
 
