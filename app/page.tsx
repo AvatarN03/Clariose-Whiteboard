@@ -37,8 +37,14 @@ async function AuthenticatedHome() {
 
 function LandingPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f8f7f4] text-[#1d1d1b]">
-      <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden bg-[#f8f7f4] text-[#1d1d1b]">
+      {/* Subtle canvas dot pattern */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-45 [background-image:radial-gradient(#b8b0a2_1px,transparent_1px)] [background-size:24px_24px]"
+      />
+
+      <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Clariose home">
           <BrandLogo nameClassName="text-base" />
         </Link>
@@ -46,16 +52,16 @@ function LandingPage() {
         <nav className="flex items-center gap-3">
           <Suspense fallback={null}>
             <Show when="signed-out">
-            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-              <Button variant="ghost" className="text-[#55534e] hover:bg-black/5 hover:text-[#1d1d1b]">
-                Sign in
-              </Button>
-            </SignInButton>
-            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-              <Button className="bg-[#1d1d1b] px-4 text-sm text-white hover:bg-[#3b3a36]">
-                Start a board
-              </Button>
-            </SignUpButton>
+              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                <Button variant="ghost" className="text-[#55534e] hover:bg-black/5 hover:text-[#1d1d1b]">
+                  Sign in
+                </Button>
+              </SignInButton>
+              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                <Button className="bg-[#1d1d1b] px-4 text-sm text-white hover:bg-[#3b3a36]">
+                  Start a board
+                </Button>
+              </SignUpButton>
             </Show>
             <Show when="signed-in">
               <Link
@@ -69,7 +75,7 @@ function LandingPage() {
         </nav>
       </header>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-14 px-6 pb-16 pt-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-10 lg:pb-24 lg:pt-20">
+      <section className="relative z-10 mx-auto grid w-full max-w-7xl gap-14 px-6 pb-16 pt-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-10 lg:pb-24 lg:pt-20">
         <div className="max-w-xl">
           <p className="mb-6 text-sm font-medium text-[#756f65]">A clear place to think together</p>
           <h1 className="font-board text-5xl font-semibold leading-[0.98] tracking-[-0.065em] sm:text-6xl lg:text-7xl">
