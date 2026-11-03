@@ -8,6 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Clariose | Think clearly, together",
   description: "A shared whiteboard for turning ideas into useful next steps.",
+  icons: "/favicon.png",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

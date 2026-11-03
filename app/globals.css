@@ -168,11 +168,31 @@
   * {
     @apply border-border outline-ring/50;
   }
+  ::selection {
+    background-color: rgba(236, 99, 56, 0.25);
+    color: inherit;
+  }
+  ::-moz-selection {
+    background-color: rgba(236, 99, 56, 0.25);
+    color: inherit;
+  }
+  ::selection {
+    background-color: rgba(236, 99, 56, 0.25);
+    color: inherit;
+  }
+  ::-moz-selection {
+    background-color: rgba(236, 99, 56, 0.25);
+    color: inherit;
+  }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
   .font-board {
     font-family: var(--font-board);
