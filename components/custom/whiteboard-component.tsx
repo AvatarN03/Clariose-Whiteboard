@@ -12,6 +12,7 @@ import type {
   BinaryFiles,
   ExcalidrawInitialDataState,
   ExcalidrawImperativeAPI,
+  NormalizedZoomValue,
   ToolType,
 } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
@@ -92,9 +93,40 @@ export const WhiteboardComponent = React.forwardRef<
   const syncedStorageKey = `${storageKey}:synced`;
   const [excalidrawApi, setExcalidrawApi] =
     React.useState<ExcalidrawImperativeAPI | null>(null);
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const resolvedThemeRef = React.useRef(resolvedTheme);
   const [activeTool, setActiveTool] =
     React.useState<AppState["activeTool"]["type"]>("selection");
+  const canvasTheme = resolvedTheme === "dark" ? "dark" : "light";
+  // Excalidraw inverts its canvas in dark mode. The internal canvas must
+  // therefore start light so the renderer produces the intended dark surface.
+  const canvasViewBackgroundColor =
+    canvasTheme === "dark" ? "#ffffff" : "#f8f7f4";
+  const canvasSurfaceColor =
+    canvasTheme === "dark" ? "#1f1f1f" : "#f8f7f4";
+  const themedInitialData = React.useMemo<ExcalidrawInitialDataState | null>(
+    () => {
+      const scene = sceneRef.current ?? initialData;
+      if (!scene) {
+        return null;
+      }
+
+      return {
+        elements: scene.elements,
+        appState: {
+          ...scene.appState,
+          theme: canvasTheme,
+          viewBackgroundColor: canvasViewBackgroundColor,
+        },
+        files: scene.files,
+      };
+    },
+    [canvasTheme, canvasViewBackgroundColor, initialData],
+  );
+
+  React.useEffect(() => {
+    resolvedThemeRef.current = resolvedTheme;
+  }, [resolvedTheme]);
 
   const saveScene = React.useCallback(() => {
     const scene = sceneRef.current;
@@ -120,14 +152,28 @@ export const WhiteboardComponent = React.forwardRef<
   }, [storageKey]);
 
   React.useEffect(() => {
+    const initialCanvasTheme: "dark" | "light" =
+      resolvedThemeRef.current === "dark" ? "dark" : "light";
+    const initialCanvasBackgroundColor =
+      initialCanvasTheme === "dark" ? "#ffffff" : "#f8f7f4";
+
     try {
       const savedScene = localStorage.getItem(storageKey);
       if (savedScene) {
         const restored = restore(JSON.parse(savedScene), null, null);
-        sceneRef.current = restored;
+        const normalizedRestored = {
+          ...restored,
+          appState: {
+            ...restored.appState,
+            theme: initialCanvasTheme,
+            viewBackgroundColor: initialCanvasBackgroundColor,
+            zoom: { value: 0.5 as NormalizedZoomValue },
+          },
+        };
+        sceneRef.current = normalizedRestored;
         hasUnsyncedChangesRef.current =
           localStorage.getItem(syncedStorageKey) !== "true";
-        setInitialData(restored);
+        setInitialData(normalizedRestored);
         return;
       }
     } catch (error) {
@@ -136,8 +182,10 @@ export const WhiteboardComponent = React.forwardRef<
 
     const blankScene: ExcalidrawInitialDataState = {
       appState: {
-        viewBackgroundColor: "#f8f7f4",
+        theme: initialCanvasTheme,
+        viewBackgroundColor: initialCanvasBackgroundColor,
         name: `whiteboard-${projectId}`,
+        zoom: { value: 0.5 as NormalizedZoomValue },
       },
     };
     sceneRef.current = {
@@ -166,11 +214,11 @@ export const WhiteboardComponent = React.forwardRef<
 
     excalidrawApi.updateScene({
       appState: {
-        theme: resolvedTheme === "dark" ? "dark" : "light",
-        viewBackgroundColor: resolvedTheme === "dark" ? "#1f1f1f" : "#f8f7f4",
+        theme: canvasTheme,
+        viewBackgroundColor: canvasViewBackgroundColor,
       },
     });
-  }, [excalidrawApi, resolvedTheme]);
+  }, [canvasTheme, canvasViewBackgroundColor, excalidrawApi]);
 
   function handleChange(
     elements: readonly ExcalidrawElement[],
@@ -179,6 +227,16 @@ export const WhiteboardComponent = React.forwardRef<
   ) {
     sceneRef.current = { elements, appState, files };
     setActiveTool(appState.activeTool.type);
+
+    // Excalidraw has its own theme menu. Keep it connected to the app theme
+    // so either theme control updates the same source of truth.
+    if (
+      (appState.theme === "dark" || appState.theme === "light") &&
+      appState.theme !== resolvedThemeRef.current
+    ) {
+      setTheme(appState.theme);
+    }
+
     hasUnsyncedChangesRef.current = true;
 
     if (saveTimerRef.current) {
@@ -221,14 +279,17 @@ export const WhiteboardComponent = React.forwardRef<
     [handleDiscard, handleMarkSynced, saveScene],
   );
 
-  if (!initialData) {
+  if (!themedInitialData) {
     return (
       <section className="relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-background" />
     );
   }
 
   return (
-    <section className="workspace-whiteboard relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-background">
+    <section
+      className="workspace-whiteboard relative h-[calc(100dvh-3.5rem)] min-h-0 flex-1 overflow-hidden bg-background"
+      style={{ backgroundColor: canvasSurfaceColor }}
+    >
       <TooltipProvider>
         <aside
           aria-label="Whiteboard tools"
@@ -270,7 +331,9 @@ export const WhiteboardComponent = React.forwardRef<
       </TooltipProvider>
       <div className="absolute inset-0">
         <Excalidraw
-          initialData={initialData}
+          key={`${projectId}:${canvasTheme}`}
+          initialData={themedInitialData}
+          theme={canvasTheme}
           onChange={handleChange}
           excalidrawAPI={setExcalidrawApi}
           UIOptions={{
@@ -279,7 +342,7 @@ export const WhiteboardComponent = React.forwardRef<
               clearCanvas: true,
               loadScene: false,
               saveToActiveFile: false,
-              toggleTheme: true,
+              toggleTheme: false,
             },
           }}
         />
