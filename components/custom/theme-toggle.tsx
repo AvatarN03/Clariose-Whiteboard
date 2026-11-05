@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "cn";
 
@@ -10,7 +10,7 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps = {}) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   // React 19-safe client hydration guard without useEffect or setState in effect
   const mounted = useSyncExternalStore(
@@ -35,23 +35,14 @@ export function ThemeToggle({ className }: ThemeToggleProps = {}) {
     );
   }
 
-  const currentTheme =
-    theme === "light" || theme === "dark" || theme === "system"
-      ? theme
-      : "system";
-
-  const nextThemeMap: Record<"light" | "dark" | "system", "light" | "dark" | "system"> = {
-    light: "dark",
-    dark: "system",
-    system: "light",
-  };
-  const nextTheme = nextThemeMap[currentTheme];
+  const isDark = resolvedTheme === "dark";
+  const nextTheme = isDark ? "light" : "dark";
 
   const cycleTheme = () => {
     setTheme(nextTheme);
   };
 
-  const label = `Current theme: ${currentTheme}. Switch to ${nextTheme} theme`;
+  const label = `Switch to ${nextTheme} theme`;
 
   return (
     <button
@@ -64,9 +55,11 @@ export function ThemeToggle({ className }: ThemeToggleProps = {}) {
       )}
       onClick={cycleTheme}
     >
-      {currentTheme === "light" && <Sun className="size-4" aria-hidden="true" />}
-      {currentTheme === "dark" && <Moon className="size-4" aria-hidden="true" />}
-      {currentTheme === "system" && <Monitor className="size-4" aria-hidden="true" />}
+      {isDark ? (
+        <Sun className="size-4" aria-hidden="true" />
+      ) : (
+        <Moon className="size-4" aria-hidden="true" />
+      )}
     </button>
   );
 }

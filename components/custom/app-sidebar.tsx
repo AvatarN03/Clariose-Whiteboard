@@ -15,7 +15,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { UserButton } from "@clerk/nextjs";
@@ -77,10 +76,9 @@ export function AppSidebar() {
         <SidebarSection label="Tools" links={utilityLinks} pathname={pathname} />
       </SidebarContent>
 
-      <SidebarFooter className="rounded-t-2xl bg-sidebar-primary p-3 text-sidebar-primary-foreground group-data-[collapsible=icon]:p-2">
-        <SidebarSeparator className="mb-3 bg-sidebar-primary-foreground/15" />
+      <SidebarFooter className="rounded-t-2xl bg-sidebar-primary p-3 text-sidebar-primary-foreground dark:bg-[#f8f7f4] dark:text-[#1d1d1b] group-data-[collapsible=icon]:p-2">
         <div className="flex min-h-9 items-center justify-between gap-3 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <span className="text-xs font-medium text-sidebar-primary-foreground/70 group-data-[collapsible=icon]:hidden">Account</span>
+          <span className="text-xs font-medium text-sidebar-primary-foreground/70 dark:text-[#615f59] group-data-[collapsible=icon]:hidden">Account</span>
           <UserButton />
         </div>
       </SidebarFooter>
