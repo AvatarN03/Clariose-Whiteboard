@@ -2,6 +2,42 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@clerk/ui/themes/shadcn.css";
+/* Keep the browser chrome aligned with the Clariose accent color. */
+html {
+  scrollbar-color: #ec6338 #f1eee8;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1eee8;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid #f1eee8;
+  border-radius: 999px;
+  background: #ec6338;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d9562d;
+}
+
+.dark {
+  scrollbar-color: #ec6338 #211f1c;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #211f1c;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  border-color: #211f1c;
+}
 
 .whiteboard-custom-toolbar {
   scrollbar-width: none;
