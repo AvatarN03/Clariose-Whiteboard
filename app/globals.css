@@ -47,6 +47,19 @@ html {
   display: none;
 }
 
+/* Previews do not need Excalidraw controls. */
+.board-preview .excalidraw .App-menu_top {
+  display: none !important;
+}
+
+/* Keep selected-element properties (including color pickers) visible, while
+   removing only the independent Excalidraw theme menu and Library trigger. */
+.workspace-whiteboard .excalidraw .main-menu-trigger,
+.workspace-whiteboard .excalidraw .default-sidebar-trigger,
+.workspace-whiteboard .excalidraw .library-menu-dropdown-container {
+  display: none !important;
+}
+
 .workspace-whiteboard .excalidraw .App-toolbar,
 .workspace-whiteboard .excalidraw .App-toolbar-container {
   display: none !important;
