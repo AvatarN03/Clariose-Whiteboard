@@ -52,6 +52,7 @@ export const boards = pgTable("boards", {
   createdAt: timestamp("created_at", { mode: "string" })
     .defaultNow()
     .notNull(),
+  archivedAt: timestamp("archived_at", { mode: "string" }),
 });
 
 export const whiteboardData = pgTable("whiteboardData", {
