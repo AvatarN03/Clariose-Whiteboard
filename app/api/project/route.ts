@@ -2,10 +2,38 @@ import { currentUser } from "@clerk/nextjs/server";
 import { randomUUID } from "node:crypto";
 import { db } from "@/db";
 import { boards } from "@/db/schema";
+import { getBoardsForUser } from "@/lib/boards/queries";
 
 type CreateProjectBody = {
   projectName?: unknown;
 };
+
+export async function GET() {
+  const user = await currentUser();
+
+  if (!user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userEmail = user.primaryEmailAddress?.emailAddress;
+  if (!userEmail) {
+    return Response.json(
+      { error: "Your account does not have a primary email address." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const boardRows = await getBoardsForUser(userEmail);
+    return Response.json({ boards: boardRows });
+  } catch (error) {
+    console.error("Failed to fetch projects.", error);
+    return Response.json(
+      { error: "Unable to load your projects right now." },
+      { status: 500 },
+    );
+  }
+}
 
 export async function POST(request: Request) {
   const user = await currentUser();

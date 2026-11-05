@@ -1,7 +1,10 @@
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
 import { Message, MessageContent, MessageGroup, MessageHeader } from "@/components/ui/message";
 import { CreateBoardDialog } from "@/components/custom/create-board-dialog";
+import { BoardEmptyState } from "@/components/custom/board-empty-state";
+import { BoardGrid } from "@/components/custom/board-grid";
+import { currentUser } from "@clerk/nextjs/server";
+import { getBoardsForUser } from "@/lib/boards/queries";
 
 export default function DashboardPage() {
   return (
@@ -12,30 +15,41 @@ export default function DashboardPage() {
 }
 
 async function DashboardContent() {
+  const user = await currentUser();
+  const userEmail = user?.primaryEmailAddress?.emailAddress;
+  const boards = userEmail ? await getBoardsForUser(userEmail) : [];
+
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 lg:px-10">
       <p className="text-sm font-medium text-[#756f65]">Dashboard</p>
-      <h1 className="font-board mt-2 text-4xl font-semibold tracking-[-0.05em]">Your boards, in one place.</h1>
+      <h1 className="font-board mt-2 text-4xl font-semibold tracking-tighter">Your boards, in one place.</h1>
       <p className="mt-3 max-w-lg text-muted-foreground">
-        Your whiteboard workspace is ready for the first board.
+        Open a board and keep your thinking moving.
       </p>
 
-      <section className="mt-10 rounded-2xl border border-dashed border-border bg-card p-8 sm:p-12">
-        <div className="max-w-md">
-          <span className="grid size-10 place-items-center rounded-xl bg-[#f3f0ea] text-xl text-[#ec6338]">+</span>
-          <h2 className="font-board mt-5 text-xl font-semibold tracking-[-0.03em]">Start with a blank board</h2>
-          <p className="mt-2 text-sm leading-6 text-[#756f65]">
-            This is the dashboard boilerplate. Board creation and collaboration can be added here next.
-          </p>
+      {boards.length > 0 ? (
+        <>
+          <div className="mt-10 flex items-center justify-between gap-4">
+            <h2 className="font-board text-2xl font-semibold tracking-[-0.03em]">
+              All boards
+            </h2>
           <CreateBoardDialog
             trigger={
-              <Button className="mt-6 bg-[#1d1d1b] text-sm text-white hover:bg-[#3b3a36]">
+              <button className="text-sm font-semibold text-[#ec6338] hover:text-[#d9562d]">
                 Create board
-              </Button>
+              </button>
             }
           />
-        </div>
-      </section>
+          </div>
+          <section className="mt-5">
+            <BoardGrid boards={boards} />
+          </section>
+        </>
+      ) : (
+        <section className="mt-10">
+          <BoardEmptyState />
+        </section>
+      )}
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">

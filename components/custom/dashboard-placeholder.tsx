@@ -14,7 +14,7 @@ export function DashboardPlaceholder({
   actionLabel,
 }: DashboardPlaceholderProps) {
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 lg:px-10">
       <p className="text-sm font-medium text-[#756f65]">{eyebrow}</p>
       <h1 className="font-board mt-2 text-4xl font-semibold tracking-[-0.05em]">{title}</h1>
       <p className="mt-3 max-w-lg text-muted-foreground">{description}</p>
