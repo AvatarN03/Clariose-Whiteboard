@@ -52,16 +52,18 @@ html {
   display: none !important;
 }
 
-/* Keep selected-element properties (including color pickers) visible, while
-   removing only the independent Excalidraw theme menu and Library trigger. */
+/* The workspace uses its own toolbar. Excalidraw renders its controls inside
+   a layer-ui wrapper, so hide that wrapper rather than relying on individual
+   button class names that can change between Excalidraw releases. */
+.workspace-whiteboard .excalidraw .layer-ui__wrapper,
+.workspace-whiteboard .excalidraw .App-menu_top,
+.workspace-whiteboard .excalidraw .App-menu_bottom,
+.workspace-whiteboard .excalidraw .App-toolbar,
+.workspace-whiteboard .excalidraw .App-toolbar-container,
+.workspace-whiteboard .excalidraw .mobile-misc-tools-container,
 .workspace-whiteboard .excalidraw .main-menu-trigger,
 .workspace-whiteboard .excalidraw .default-sidebar-trigger,
 .workspace-whiteboard .excalidraw .library-menu-dropdown-container {
-  display: none !important;
-}
-
-.workspace-whiteboard .excalidraw .App-toolbar,
-.workspace-whiteboard .excalidraw .App-toolbar-container {
   display: none !important;
 }
 
