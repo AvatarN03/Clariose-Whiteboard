@@ -440,7 +440,11 @@ export const WhiteboardComponent = React.forwardRef<
       >
         <Icon className="size-4" />
       </TooltipTrigger>
-      <TooltipContent side="top">
+      <TooltipContent side="top" className="md:hidden">
+        {label}
+        <Kbd>{shortcut}</Kbd>
+      </TooltipContent>
+      <TooltipContent side="left" className="hidden md:inline-flex">
         {label}
         <Kbd>{shortcut}</Kbd>
       </TooltipContent>
