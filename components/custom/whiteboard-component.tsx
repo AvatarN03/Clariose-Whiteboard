@@ -133,6 +133,7 @@ export const WhiteboardComponent = React.forwardRef<
     React.useState<ExcalidrawImperativeAPI | null>(null);
   const { resolvedTheme, setTheme } = useTheme();
   const resolvedThemeRef = React.useRef(resolvedTheme);
+  const [isMobile, setIsMobile] = React.useState(false);
   const [activeTool, setActiveTool] =
     React.useState<AppState["activeTool"]["type"]>("selection");
   const canvasTheme = resolvedTheme === "dark" ? "dark" : "light";
@@ -152,7 +153,7 @@ export const WhiteboardComponent = React.forwardRef<
       return {
         elements: scene.elements,
         appState: {
-          ...normalizeAppState(scene.appState),
+          ...normalizeAppState(scene.appState ?? {}),
           theme: canvasTheme,
           viewBackgroundColor: canvasViewBackgroundColor,
         },
@@ -165,6 +166,15 @@ export const WhiteboardComponent = React.forwardRef<
   React.useEffect(() => {
     resolvedThemeRef.current = resolvedTheme;
   }, [resolvedTheme]);
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobile(mediaQuery.matches);
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
 
   const saveScene = React.useCallback(() => {
     const scene = sceneRef.current;
@@ -440,11 +450,7 @@ export const WhiteboardComponent = React.forwardRef<
       >
         <Icon className="size-4" />
       </TooltipTrigger>
-      <TooltipContent side="top" className="md:hidden">
-        {label}
-        <Kbd>{shortcut}</Kbd>
-      </TooltipContent>
-      <TooltipContent side="left" className="hidden md:inline-flex">
+      <TooltipContent side={isMobile ? "top" : "left"}>
         {label}
         <Kbd>{shortcut}</Kbd>
       </TooltipContent>
