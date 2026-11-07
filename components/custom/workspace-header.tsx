@@ -5,8 +5,31 @@ import { ButtonGroup } from "@/components/ui/button-group";
 import { useToastManager } from "@/components/ui/toast";
 import { BrandLogo } from "@/components/custom/brand-logo";
 import { ThemeToggle } from "@/components/custom/theme-toggle";
+import {
+  Ellipsis,
+  FileText,
+  Share2,
+  SquarePen,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type WorkspaceTab = "whiteboard" | "docs";
+
+const workspaceTabs = [
+  { value: "whiteboard" as const, label: "Whiteboard", icon: SquarePen },
+  { value: "docs" as const, label: "Docs", icon: FileText },
+];
 
 type WorkspaceHeaderProps = {
   activeTab: WorkspaceTab;
@@ -44,53 +67,101 @@ export function WorkspaceHeader({
           onRequestLeave();
         }}
       >
-        <BrandLogo nameClassName="text-lg" />
+        <BrandLogo mobileIconOnly nameClassName="text-lg" />
       </Link>
 
-      <div className="absolute left-1/2 flex -translate-x-1/2 rounded-lg border border-border bg-muted p-1">
-        {(["whiteboard", "docs"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
-              activeTab === tab
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            aria-pressed={activeTab === tab}
-            onClick={() => onTabChange(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      <TooltipProvider>
+        <div className="absolute left-1/2 flex -translate-x-1/2 rounded-lg border border-border bg-muted p-1">
+          {workspaceTabs.map(({ value, label, icon: Icon }) => (
+            <Tooltip key={value}>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    className={`cursor-pointer rounded-md px-2 py-1.5 text-xs font-medium capitalize transition-colors md:px-3 ${
+                      activeTab === value
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-label={label}
+                    aria-pressed={activeTab === value}
+                    onClick={() => onTabChange(value)}
+                  >
+                    <Icon className="size-4 md:hidden" aria-hidden="true" />
+                    <span className="hidden md:inline">{label}</span>
+                  </button>
+                }
+              />
+              <TooltipContent>{label}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </TooltipProvider>
 
       <ButtonGroup className="shrink-0 gap-2">
-        <ThemeToggle />
-        <button
-          type="button"
-          disabled={isSaving}
-          className="cursor-pointer rounded-lg bg-[#ec6338] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#d9562d]"
-          onClick={async () => {
-            const saved = await onSave();
-            toastManager.add({
-              title: saved ? "Workspace saved" : "Workspace not saved",
-              description: saved
-                ? "Your whiteboard was saved to the database."
-                : "The whiteboard is still loading. Try saving again.",
-              type: saved ? "success" : "error",
-            });
-          }}
-        >
-          {isSaving ? "Saving..." : "Save"}
-        </button>
-        <button
-          type="button"
-          className="cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3b3a36]"
-          onClick={showToast}
-        >
-          Share
-        </button>
+        <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle />
+          <button
+            type="button"
+            disabled={isSaving}
+            className="cursor-pointer rounded-lg bg-[#ec6338] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#d9562d]"
+            onClick={async () => {
+              const saved = await onSave();
+              toastManager.add({
+                title: saved ? "Workspace saved" : "Workspace not saved",
+                description: saved
+                  ? "Your whiteboard was saved to the database."
+                  : "The whiteboard is still loading. Try saving again.",
+                type: saved ? "success" : "error",
+              });
+            }}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+          <button
+            type="button"
+            className="cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3b3a36]"
+            onClick={showToast}
+          >
+            Share
+          </button>
+        </div>
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button
+            type="button"
+            disabled={isSaving}
+            className="cursor-pointer rounded-lg bg-[#ec6338] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#d9562d]"
+            onClick={async () => {
+              const saved = await onSave();
+              toastManager.add({
+                title: saved ? "Workspace saved" : "Workspace not saved",
+                description: saved
+                  ? "Your whiteboard was saved to the database."
+                  : "The whiteboard is still loading. Try saving again.",
+                type: saved ? "success" : "error",
+              });
+            }}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Open workspace menu"
+              className="grid size-8 cursor-pointer place-items-center rounded-lg border border-border bg-background text-foreground hover:bg-accent"
+            >
+              <Ellipsis className="size-4" aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-36">
+              <DropdownMenuItem onClick={showToast} className="cursor-pointer">
+                <Share2 className="size-4" aria-hidden="true" />
+                Share
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </ButtonGroup>
     </header>
   );
