@@ -1,0 +1,105 @@
+import { randomUUID } from "node:crypto";
+import { currentUser } from "@clerk/nextjs/server";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { boardShares, boards } from "@/db/schema";
+import {
+  getOwnedShare,
+  isSharePermission,
+  type SharePermission,
+} from "@/lib/boards/sharing";
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
+  const user = await currentUser();
+  const userEmail = user?.primaryEmailAddress?.emailAddress;
+  if (!userEmail) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { projectId } = await params;
+  let body: { permission?: unknown; email?: unknown };
+  try {
+    body = (await request.json()) as { permission?: unknown };
+  } catch {
+    return Response.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  const permission = body.permission;
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!isSharePermission(permission) || !email || !email.includes("@")) {
+    return Response.json({ error: "A valid permission is required." }, { status: 400 });
+  }
+
+  try {
+    const [board] = await db
+      .select({ projectId: boards.projectId })
+      .from(boards)
+      .where(and(eq(boards.projectId, projectId), eq(boards.userEmail, userEmail)))
+      .limit(1);
+    if (!board) {
+      return Response.json({ error: "Project not found." }, { status: 404 });
+    }
+
+    const existing = await getOwnedShare(projectId, userEmail, email);
+    const share =
+      existing ??
+      (
+        await db
+          .insert(boardShares)
+          .values({
+            projectId,
+            email,
+            token: randomUUID(),
+            permission: permission as SharePermission,
+          })
+          .returning({ token: boardShares.token, permission: boardShares.permission })
+      )[0];
+
+    return Response.json({
+      token: share?.token,
+      email: share?.email ?? email,
+      permission: share?.permission,
+      url: `${new URL(request.url).origin}/shared/${share?.token}`,
+    });
+  } catch (error) {
+    console.error("Failed to create board share.", error);
+    return Response.json({ error: "Unable to create a share link right now." }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ projectId: string }> },
+) {
+  const user = await currentUser();
+  const userEmail = user?.primaryEmailAddress?.emailAddress;
+  if (!userEmail) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { projectId } = await params;
+  try {
+    const result = await db
+      .delete(boardShares)
+      .where(
+        and(
+          eq(boardShares.projectId, projectId),
+          eq(
+            boardShares.projectId,
+            db
+              .select({ projectId: boards.projectId })
+              .from(boards)
+              .where(and(eq(boards.projectId, projectId), eq(boards.userEmail, userEmail)))
+              .limit(1),
+          ),
+        ),
+      );
+    return Response.json({ revoked: result.rowCount > 0 });
+  } catch (error) {
+    console.error("Failed to revoke board shares.", error);
+    return Response.json({ error: "Unable to revoke share links right now." }, { status: 500 });
+  }
+}

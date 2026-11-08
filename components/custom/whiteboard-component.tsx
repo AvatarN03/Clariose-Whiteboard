@@ -16,6 +16,9 @@ import type {
   ToolType,
 } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import { compileDiagramProposal } from "@/lib/ai/excalidraw-compiler";
+import { createDiagramContext, type DiagramContext } from "@/lib/ai/diagram-context";
+import type { DiagramProposal } from "@/lib/ai/diagram-schema";
 import {
   ArrowDownRight,
   Circle,
@@ -27,6 +30,7 @@ import {
   MousePointer2,
   Pencil,
   Square,
+  Sparkles,
   Type,
 } from "lucide-react";
 import {
@@ -54,9 +58,16 @@ const Excalidraw = dynamic(
 
 type WhiteboardComponentProps = {
   projectId: string;
+  projectName: string;
   initialSnapshot?: SceneSnapshot | null;
   initialSnapshotUpdatedAt?: string | null;
+  onOpenAi: () => void;
+  readOnly?: boolean;
 };
+
+export type ApplyProposalResult =
+  | { success: true; generatedElementIds: string[]; generatedGroupId: string; removedElementIds: string[] }
+  | { success: false; error: string };
 
 export type WhiteboardComponentHandle = {
   save: () => boolean;
@@ -64,6 +75,10 @@ export type WhiteboardComponentHandle = {
   hasUnsyncedChanges: () => boolean;
   markSynced: () => void;
   discard: () => void;
+  getContext: () => DiagramContext | null;
+  applyProposal: (proposal: DiagramProposal, mode: "add" | "replace-selection") => ApplyProposalResult;
+  undoLastAiInsertion: () => boolean;
+  replaceSnapshot: (snapshot: SceneSnapshot) => void;
 };
 
 export type SceneSnapshot = {
@@ -115,7 +130,7 @@ export const WhiteboardComponent = React.forwardRef<
   WhiteboardComponentHandle,
   WhiteboardComponentProps
 >(function WhiteboardComponent(
-  { projectId, initialSnapshot, initialSnapshotUpdatedAt },
+  { projectId, projectName, initialSnapshot, initialSnapshotUpdatedAt, onOpenAi, readOnly = false },
   ref,
 ) {
   const storageKey = `whiteboard-scene:${projectId}`;
@@ -124,6 +139,12 @@ export const WhiteboardComponent = React.forwardRef<
   const sceneRef = React.useRef<SceneSnapshot | null>(null);
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasUnsyncedChangesRef = React.useRef(false);
+  const lastAiInsertionRef = React.useRef<{
+    generatedElementIds: Set<string>;
+    removedElements: ExcalidrawElement[];
+    previousSelectedElementIds: AppState["selectedElementIds"];
+    previousSelectedGroupIds: AppState["selectedGroupIds"];
+  } | null>(null);
   const syncedStorageKey = `${storageKey}:synced`;
   const [conflict, setConflict] = React.useState<{
     local: SceneSnapshot;
@@ -156,11 +177,12 @@ export const WhiteboardComponent = React.forwardRef<
           ...normalizeAppState(scene.appState ?? {}),
           theme: canvasTheme,
           viewBackgroundColor: canvasViewBackgroundColor,
+          viewModeEnabled: readOnly,
         },
         files: scene.files,
       };
     },
-    [canvasTheme, canvasViewBackgroundColor, initialData],
+    [canvasTheme, canvasViewBackgroundColor, initialData, readOnly],
   );
 
   React.useEffect(() => {
@@ -353,6 +375,129 @@ export const WhiteboardComponent = React.forwardRef<
     }
   }, [storageKey, syncedStorageKey]);
 
+  const getContext = React.useCallback((): DiagramContext | null => {
+    const scene = sceneRef.current;
+    if (!scene) return null;
+    const selectedElementIds = scene.appState.selectedElementIds ?? {};
+    const selectedElements = scene.elements.filter((element) => Boolean(selectedElementIds[element.id]));
+    return createDiagramContext({
+      projectId,
+      projectName,
+      elements: scene.elements,
+      selectedElements,
+    });
+  }, [projectId, projectName]);
+
+  const applyProposal = React.useCallback(
+    (proposal: DiagramProposal, mode: "add" | "replace-selection"): ApplyProposalResult => {
+      const scene = sceneRef.current;
+      if (!scene) return { success: false, error: "The whiteboard is not ready yet." };
+
+      const selectedElementIds = scene.appState.selectedElementIds ?? {};
+      const selectedAiGroupIds = new Set(
+        scene.elements
+          .filter((element) => Boolean(selectedElementIds[element.id]))
+          .map((element) => {
+            const data = element.customData;
+            return data && typeof data === "object" && typeof data.aiGroupId === "string" ? data.aiGroupId : null;
+          })
+          .filter((groupId): groupId is string => Boolean(groupId)),
+      );
+
+      if (mode === "replace-selection" && selectedAiGroupIds.size === 0) {
+        return { success: false, error: "Select an existing AI-generated group to replace it." };
+      }
+
+      const removedElements = mode === "replace-selection"
+        ? scene.elements.filter((element) => {
+            const data = element.customData;
+            return data && typeof data === "object" && typeof data.aiGroupId === "string" && selectedAiGroupIds.has(data.aiGroupId);
+          })
+        : [];
+      const removedIds = new Set(removedElements.map((element) => element.id));
+      const baseElements = scene.elements.filter((element) => !removedIds.has(element.id));
+      const appState = excalidrawApi?.getAppState() ?? scene.appState;
+      const zoom = typeof appState.zoom?.value === "number" && appState.zoom.value > 0 ? appState.zoom.value : 1;
+      const compiled = compileDiagramProposal(proposal, {
+        viewport: {
+          x: -(appState.scrollX ?? 0),
+          y: -(appState.scrollY ?? 0),
+          width: (appState.width ?? 1200) / zoom,
+          height: (appState.height ?? 800) / zoom,
+        },
+        existingElements: baseElements,
+      });
+
+      if (compiled.elements.length === 0) return { success: false, error: "The proposal did not contain any drawable elements." };
+
+      const nextElements = [...baseElements, ...compiled.elements];
+      const nextSelectedElementIds = Object.fromEntries(compiled.elements.map((element) => [element.id, true])) as AppState["selectedElementIds"];
+      const nextSelectedGroupIds = { [compiled.generatedGroupId]: true } as AppState["selectedGroupIds"];
+      sceneRef.current = {
+        elements: nextElements,
+        appState: {
+          ...scene.appState,
+          selectedElementIds: nextSelectedElementIds,
+          selectedGroupIds: nextSelectedGroupIds,
+        },
+        files: scene.files,
+      };
+      lastAiInsertionRef.current = {
+        generatedElementIds: new Set(compiled.generatedElementIds),
+        removedElements,
+        previousSelectedElementIds: scene.appState.selectedElementIds ?? {},
+        previousSelectedGroupIds: scene.appState.selectedGroupIds ?? {},
+      };
+      hasUnsyncedChangesRef.current = true;
+      excalidrawApi?.updateScene({
+        elements: nextElements,
+        appState: {
+          selectedElementIds: nextSelectedElementIds,
+          selectedGroupIds: nextSelectedGroupIds,
+        },
+      });
+      saveScene();
+      return {
+        success: true,
+        generatedElementIds: compiled.generatedElementIds,
+        generatedGroupId: compiled.generatedGroupId,
+        removedElementIds: [...removedIds],
+      };
+    },
+    [excalidrawApi, saveScene],
+  );
+
+  const undoLastAiInsertion = React.useCallback(() => {
+    const scene = sceneRef.current;
+    const lastInsertion = lastAiInsertionRef.current;
+    if (!scene || !lastInsertion) return false;
+
+    const generatedIds = lastInsertion.generatedElementIds;
+    const currentIds = new Set(scene.elements.map((element) => element.id));
+    const restoredElements = lastInsertion.removedElements.filter((element) => !currentIds.has(element.id));
+    const nextElements = [...scene.elements.filter((element) => !generatedIds.has(element.id)), ...restoredElements];
+    sceneRef.current = {
+      elements: nextElements,
+      appState: {
+        ...scene.appState,
+        selectedElementIds: lastInsertion.previousSelectedElementIds,
+        selectedGroupIds: lastInsertion.previousSelectedGroupIds,
+      },
+      files: scene.files,
+    };
+    hasUnsyncedChangesRef.current = true;
+    excalidrawApi?.updateScene({
+      elements: nextElements,
+      appState: {
+        selectedElementIds: lastInsertion.previousSelectedElementIds,
+        selectedGroupIds: lastInsertion.previousSelectedGroupIds,
+      },
+    });
+    lastAiInsertionRef.current = null;
+    saveScene();
+    return true;
+  }, [excalidrawApi, saveScene]);
+
   const resolveConflict = React.useCallback(
     (choice: "local" | "saved" | "both") => {
       if (!conflict) {
@@ -395,8 +540,24 @@ export const WhiteboardComponent = React.forwardRef<
       hasUnsyncedChanges: () => hasUnsyncedChangesRef.current,
       markSynced: handleMarkSynced,
       discard: handleDiscard,
+      getContext,
+      applyProposal,
+      undoLastAiInsertion,
+      replaceSnapshot: (snapshot) => {
+        sceneRef.current = snapshot;
+        hasUnsyncedChangesRef.current = false;
+        setInitialData(snapshot);
+        excalidrawApi?.updateScene({
+          elements: snapshot.elements,
+          appState: {
+            ...normalizeAppState(snapshot.appState),
+            viewModeEnabled: readOnly,
+          },
+          files: snapshot.files,
+        });
+      },
     }),
-    [handleDiscard, handleMarkSynced, saveScene],
+    [applyProposal, excalidrawApi, getContext, handleDiscard, handleMarkSynced, readOnly, saveScene, undoLastAiInsertion],
   );
 
   const conflictDialog = (
@@ -474,18 +635,26 @@ export const WhiteboardComponent = React.forwardRef<
         style={{ backgroundColor: canvasSurfaceColor }}
       >
       <TooltipProvider>
-        <aside
+        {!readOnly ? <button
+          type="button"
+          onClick={onOpenAi}
+          className="absolute bottom-4 left-4 z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#ec6338]/40 bg-card/95 px-3 py-2 text-xs font-medium text-[#c84d29] shadow-sm backdrop-blur-sm transition-colors hover:bg-[#ec6338]/10 dark:text-[#ff9b7d]"
+        >
+          <Sparkles className="size-3.5" aria-hidden="true" />
+          AI
+        </button> : null}
+        {!readOnly ? <aside
           aria-label="Utility tools"
           className="whiteboard-utility-toolbar absolute bottom-4 right-2 z-10 flex flex-row gap-1 rounded-xl border border-border bg-card/95 p-1.5 shadow-sm backdrop-blur-sm md:bottom-auto md:left-4 md:right-auto md:top-1/2 md:-translate-y-1/2 md:flex-col"
         >
           {utilityTools.map(renderTool)}
-        </aside>
-        <aside
+        </aside> : null}
+        {!readOnly ? <aside
           aria-label="Drawing tools"
           className="whiteboard-custom-toolbar absolute left-1/2 top-2 z-10 flex w-fit max-w-[calc(100%-1rem)] -translate-x-1/2 flex-row gap-1 overflow-x-auto rounded-xl border border-border bg-card/95 p-1.5 shadow-sm backdrop-blur-sm md:left-auto md:right-4 md:top-1/2 md:max-w-none md:translate-x-0 md:-translate-y-1/2 md:flex-col"
         >
           {drawingTools.map(renderTool)}
-        </aside>
+        </aside> : null}
       </TooltipProvider>
       <div className="absolute inset-0">
         <Excalidraw

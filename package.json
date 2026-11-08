@@ -7,6 +7,8 @@
         "build": "next build --webpack",
         "start": "next start",
         "lint": "eslint",
+        "ai:verify": "tsx scripts/verify-ai-phase2.ts",
+        "ai:verify-phase6": "tsx scripts/verify-ai-phase6.ts",
         "db:generate": "drizzle-kit generate",
         "db:introspect": "drizzle-kit introspect",
         "db:push": "drizzle-kit push",

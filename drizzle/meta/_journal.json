@@ -29,6 +29,27 @@
       "when": 1793888301484,
       "tag": "0003_violet_leech",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794074332615,
+      "tag": "0004_phase_one_snapshot_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794074332616,
+      "tag": "0005_add_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794074332617,
+      "tag": "0006_add_board_shares",
+      "breakpoints": true
     }
   ]
 }

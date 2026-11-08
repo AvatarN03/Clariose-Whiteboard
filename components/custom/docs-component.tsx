@@ -1,30 +1,176 @@
 "use client";
 
+import * as React from "react";
+import { LoaderCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MarkdownEditor } from "@/components/custom/markdown-editor";
+
 type DocsComponentProps = {
   projectId: string;
+  onSavingChange?: (isSaving: boolean) => void;
 };
 
-export function DocsComponent({ projectId }: DocsComponentProps) {
-  return (
-    <section className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-1 items-center justify-center bg-[#fff8f1] p-8">
-      <div className="w-full max-w-lg rounded-3xl border border-border bg-card p-8 shadow-sm">
-        <div className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-[#fff0df] text-2xl">
-          Aa
-        </div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#ec6338]">
-          Docs component
-        </p>
-        <h1 className="font-board mt-2 text-3xl font-semibold tracking-[-0.03em]">
-          A clear space for your notes
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-[#756f65]">
-          This is the starter view for the Docs component. Replace this
-          boilerplate with your editor, project notes, or documentation.
-        </p>
-        <div className="mt-6 rounded-2xl bg-[#fff8f1] p-4 text-xs text-[#9b9489]">
-          Project: <span className="font-mono">{projectId}</span>
-        </div>
-      </div>
-    </section>
-  );
+export type DocsComponentHandle = {
+  save: () => Promise<boolean>;
+  hasUnsyncedChanges: () => boolean;
+  discard: () => void;
+};
+
+type WorkspaceDocument = {
+  id: number;
+  title: string;
+  content: unknown;
+  updatedAt: string;
+};
+
+type SaveState = "saved" | "unsaved" | "saving" | "error";
+
+function getMarkdown(content: unknown) {
+  if (
+    typeof content === "object" &&
+    content !== null &&
+    (content as { type?: unknown }).type === "markdown" &&
+    typeof (content as { markdown?: unknown }).markdown === "string"
+  ) {
+    return (content as { markdown: string }).markdown;
+  }
+
+  return "";
 }
+
+export const DocsComponent = React.forwardRef<DocsComponentHandle, DocsComponentProps>(
+  function DocsComponent({ projectId, onSavingChange }, ref) {
+    const [document, setDocument] = React.useState<WorkspaceDocument | null>(null);
+    const [loadState, setLoadState] = React.useState<"loading" | "ready" | "error">("loading");
+    const [saveState, setSaveState] = React.useState<SaveState>("saved");
+    const documentRef = React.useRef<WorkspaceDocument | null>(null);
+    const savedDocumentRef = React.useRef<WorkspaceDocument | null>(null);
+    const isDirtyRef = React.useRef(false);
+    const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const saveDocument = React.useCallback(async (draft: WorkspaceDocument) => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      if (!draft.title.trim()) {
+        setSaveState("error");
+        return false;
+      }
+
+      setSaveState("saving");
+      try {
+        const response = await fetch(`/api/workspace/${projectId}/documents/${draft.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: draft.title, content: draft.content }),
+        });
+        if (!response.ok) throw new Error(`Document save request failed with ${response.status}`);
+
+        const data = (await response.json()) as { document: WorkspaceDocument };
+        const currentDocument = documentRef.current;
+        if (currentDocument && currentDocument.id === draft.id && currentDocument.title === draft.title && JSON.stringify(currentDocument.content) === JSON.stringify(draft.content)) {
+          documentRef.current = data.document;
+          savedDocumentRef.current = data.document;
+          isDirtyRef.current = false;
+          setDocument(data.document);
+          setSaveState("saved");
+        } else {
+          setSaveState("unsaved");
+        }
+        return true;
+      } catch (error) {
+        console.error("Unable to save workspace document.", error);
+        setSaveState("error");
+        return false;
+      }
+    }, [projectId]);
+
+    const loadDocument = React.useCallback(async () => {
+      setLoadState("loading");
+      try {
+        const listResponse = await fetch(`/api/workspace/${projectId}/documents`, { cache: "no-store" });
+        if (!listResponse.ok) throw new Error(`Document list request failed with ${listResponse.status}`);
+        const list = (await listResponse.json()) as { documents: Array<{ id: number }> };
+        let documentId = list.documents[0]?.id;
+
+        if (!documentId) {
+          const createResponse = await fetch(`/api/workspace/${projectId}/documents`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: "Project notes" }),
+          });
+          if (!createResponse.ok) throw new Error(`Document create request failed with ${createResponse.status}`);
+          const created = (await createResponse.json()) as { document: WorkspaceDocument };
+          documentId = created.document.id;
+        }
+
+        const response = await fetch(`/api/workspace/${projectId}/documents/${documentId}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Document request failed with ${response.status}`);
+        const data = (await response.json()) as { document: WorkspaceDocument };
+        documentRef.current = data.document;
+        savedDocumentRef.current = data.document;
+        isDirtyRef.current = false;
+        setDocument(data.document);
+        setSaveState("saved");
+        setLoadState("ready");
+      } catch (error) {
+        console.error("Unable to load workspace document.", error);
+        setLoadState("error");
+      }
+    }, [projectId]);
+
+    React.useEffect(() => { void loadDocument(); }, [loadDocument]);
+
+    React.useEffect(() => {
+      onSavingChange?.(saveState === "saving");
+    }, [onSavingChange, saveState]);
+
+    React.useEffect(() => () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    }, []);
+
+    const updateDraft = React.useCallback((updates: Partial<Pick<WorkspaceDocument, "title" | "content">>) => {
+      setDocument((currentDocument) => {
+        if (!currentDocument) return currentDocument;
+        const draft = { ...currentDocument, ...updates };
+        documentRef.current = draft;
+        isDirtyRef.current = true;
+        setSaveState("unsaved");
+        return draft;
+      });
+    }, []);
+
+    React.useEffect(() => {
+      if (!document || !isDirtyRef.current) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      const snapshot = { ...document };
+      saveTimerRef.current = setTimeout(() => void saveDocument(snapshot), 60_000);
+    }, [document, saveDocument]);
+
+    React.useImperativeHandle(ref, () => ({
+      save: async () => documentRef.current && isDirtyRef.current ? saveDocument(documentRef.current) : true,
+      hasUnsyncedChanges: () => isDirtyRef.current,
+      discard: () => {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        const saved = savedDocumentRef.current;
+        if (saved) {
+          documentRef.current = saved;
+          setDocument(saved);
+        }
+        isDirtyRef.current = false;
+        setSaveState("saved");
+      },
+    }), [saveDocument]);
+
+    if (loadState === "loading") {
+      return <section className="grid min-h-0 flex-1 place-items-center bg-[#fffaf5] dark:bg-background"><LoaderCircle className="size-5 animate-spin text-[#ec6338]" aria-label="Loading document" /></section>;
+    }
+
+    if (loadState === "error" || !document) {
+      return <section className="grid min-h-0 flex-1 place-items-center bg-[#fffaf5] p-6 text-center dark:bg-background"><div><p className="font-medium">Couldn’t load your notes</p><Button variant="outline" size="sm" className="mt-3" onClick={() => void loadDocument()}><RefreshCw aria-hidden="true" />Try again</Button></div></section>;
+    }
+
+    return <section className="min-h-0 flex-1 overflow-y-auto bg-[#fffaf5] dark:bg-background"><article className="mx-auto w-full max-w-5xl px-6 py-6 sm:px-10 sm:py-8"><MarkdownEditor markdown={getMarkdown(document.content)} isSaving={saveState === "saving"} onMarkdownChange={(markdown) => updateDraft({ content: { type: "markdown", markdown } })} /></article></section>;
+  },
+);

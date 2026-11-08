@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import {
   Show,
@@ -18,25 +17,13 @@ const boardItems = [
   { label: "Ship a first pass", x: "bottom-10 left-[44%]", tone: "bg-[#fae8ff]" },
 ];
 
-export default function Home() {
-  return (
-    <Suspense fallback={<LandingPage />}>
-      <AuthenticatedHome />
-    </Suspense>
-  );
-}
-
-async function AuthenticatedHome() {
+export default async function Home() {
   const { isAuthenticated } = await auth();
 
   if (isAuthenticated) {
     redirect("/dashboard");
   }
 
-  return <LandingPage />;
-}
-
-function LandingPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f8f7f4] text-[#1d1d1b] transition-colors dark:bg-background dark:text-foreground">
       {/* Subtle canvas dot pattern */}
@@ -52,28 +39,26 @@ function LandingPage() {
 
         <nav className="flex items-center gap-3">
           <ThemeToggle />
-          <Suspense fallback={null}>
-            <Show when="signed-out">
-              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                <Button variant="ghost" className="text-[#55534e] hover:bg-black/5 hover:text-[#1d1d1b] dark:text-muted-foreground dark:hover:bg-accent dark:hover:text-foreground">
-                  Sign in
-                </Button>
-              </SignInButton>
-              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                <Button className="bg-[#1d1d1b] px-4 text-sm text-white hover:bg-[#3b3a36] dark:bg-foreground dark:text-background dark:hover:bg-foreground/90">
-                  Start a board
-                </Button>
-              </SignUpButton>
-            </Show>
-            <Show when="signed-in">
-              <Link
-                href="/dashboard"
-                className="rounded-lg bg-[#1d1d1b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#3b3a36] dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
-              >
-                Open dashboard
-              </Link>
-            </Show>
-          </Suspense>
+          <Show when="signed-out">
+            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+              <Button variant="ghost" className="text-[#55534e] hover:bg-black/5 hover:text-[#1d1d1b] dark:text-muted-foreground dark:hover:bg-accent dark:hover:text-foreground">
+                Sign in
+              </Button>
+            </SignInButton>
+            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+              <Button className="bg-[#1d1d1b] px-4 text-sm text-white hover:bg-[#3b3a36] dark:bg-foreground dark:text-background dark:hover:bg-foreground/90">
+                Start a board
+              </Button>
+            </SignUpButton>
+          </Show>
+          <Show when="signed-in">
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-[#1d1d1b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#3b3a36] dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
+            >
+              Open dashboard
+            </Link>
+          </Show>
         </nav>
       </header>
 
@@ -91,23 +76,21 @@ function LandingPage() {
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
-            <Suspense fallback={null}>
-              <Show when="signed-out">
-                <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                  <Button size="lg" className="h-11 bg-[#ec6338] px-5 text-sm font-semibold text-white hover:bg-[#d9562d]">
-                    Make your first board
-                  </Button>
-                </SignUpButton>
-              </Show>
-              <Show when="signed-in">
-                <Link
-                  href="/dashboard"
-                  className="rounded-lg bg-[#ec6338] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#d9562d]"
-                >
-                  Go to your dashboard
-                </Link>
-              </Show>
-            </Suspense>
+            <Show when="signed-out">
+              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                <Button size="lg" className="h-11 bg-[#ec6338] px-5 text-sm font-semibold text-white hover:bg-[#d9562d]">
+                  Make your first board
+                </Button>
+              </SignUpButton>
+            </Show>
+            <Show when="signed-in">
+              <Link
+                href="/dashboard"
+                className="rounded-lg bg-[#ec6338] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#d9562d]"
+              >
+                Go to your dashboard
+              </Link>
+            </Show>
             <span className="text-sm text-[#756f65] dark:text-muted-foreground">Free to start. No card needed.</span>
           </div>
         </div>

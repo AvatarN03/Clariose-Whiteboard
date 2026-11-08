@@ -1,5 +1,6 @@
 import {
   foreignKey,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -55,12 +56,60 @@ export const boards = pgTable("boards", {
   archivedAt: timestamp("archived_at", { mode: "string" }),
 });
 
+export const boardShares = pgTable(
+  "board_shares",
+  {
+    id: serial("id").primaryKey(),
+    projectId: varchar("project_id")
+      .notNull()
+      .references(() => boards.projectId),
+    email: varchar("email").notNull(),
+    token: varchar("token").notNull(),
+    permission: varchar("permission").notNull().default("viewer"),
+    createdAt: timestamp("created_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("board_shares_token_unique").on(table.token),
+    unique("board_shares_project_email_unique").on(
+      table.projectId,
+      table.email,
+    ),
+    index("board_shares_project_idx").on(table.projectId),
+  ],
+);
+
 export const whiteboardData = pgTable("whiteboardData", {
   id: serial("id").primaryKey(),
   projectId: varchar("projectId")
     .notNull()
     .references(() => boards.projectId),
+  snapshotVersion: integer("snapshot_version").default(1).notNull(),
+  updatedAt: timestamp("updated_at", { mode: "string" })
+    .defaultNow()
+    .notNull(),
   elements: jsonb("elements"),
   appState: jsonb("appState"),
   files: jsonb("files"),
 });
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: serial("id").primaryKey(),
+    projectId: varchar("project_id")
+      .notNull()
+      .references(() => boards.projectId),
+    title: text("title").notNull(),
+    content: jsonb("content").notNull().default({ type: "doc", content: [] }),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("documents_project_position_idx").on(table.projectId, table.position)],
+);

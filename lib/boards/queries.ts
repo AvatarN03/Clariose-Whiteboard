@@ -8,6 +8,8 @@ const boardSelection = {
   projectName: boards.projectName,
   createdAt: boards.createdAt,
   archivedAt: boards.archivedAt,
+  snapshotVersion: whiteboardData.snapshotVersion,
+  updatedAt: whiteboardData.updatedAt,
   elements: whiteboardData.elements,
   appState: whiteboardData.appState,
   files: whiteboardData.files,
