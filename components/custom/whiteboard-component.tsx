@@ -549,11 +549,10 @@ export const WhiteboardComponent = React.forwardRef<
         setInitialData(snapshot);
         excalidrawApi?.updateScene({
           elements: snapshot.elements,
-          files: snapshot.files,
         });
       },
     }),
-    [applyProposal, excalidrawApi, getContext, handleDiscard, handleMarkSynced, readOnly, saveScene, undoLastAiInsertion],
+    [applyProposal, excalidrawApi, getContext, handleDiscard, handleMarkSynced, saveScene, undoLastAiInsertion],
   );
 
   const conflictDialog = (

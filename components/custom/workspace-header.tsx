@@ -10,7 +10,6 @@ import {
   Ellipsis,
   FileText,
   RefreshCw,
-  Share2,
   SquarePen,
 } from "lucide-react";
 import {
@@ -59,14 +58,6 @@ export function WorkspaceHeader({
   isShared = false,
 }: WorkspaceHeaderProps) {
   const toastManager = useToastManager();
-
-  function showToast() {
-    toastManager.add({
-      title: "Share link ready",
-      description: "Sharing is ready in this demo workspace.",
-      type: "success",
-    });
-  }
 
   return (
     <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 text-foreground sm:px-6">
@@ -161,6 +152,7 @@ export function WorkspaceHeader({
         </div>
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle />
+          {!isShared ? <ShareBoardDialog projectId={projectId} /> : null}
           {canEdit ? <button
             type="button"
             disabled={isSaving}
@@ -206,10 +198,6 @@ export function WorkspaceHeader({
                 <RefreshCw className="size-4" aria-hidden="true" />
                 Refresh
               </DropdownMenuItem>
-              {!isShared ? <DropdownMenuItem onClick={showToast} className="cursor-pointer">
-                <Share2 className="size-4" aria-hidden="true" />
-                Share
-              </DropdownMenuItem> : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

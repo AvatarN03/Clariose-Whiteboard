@@ -44,19 +44,31 @@ export async function POST(
     }
 
     const existing = await getOwnedShare(projectId, userEmail, email);
-    const share =
-      existing ??
-      (
+    let share = existing;
+    if (share) {
+      if (share.permission !== permission) {
         await db
-          .insert(boardShares)
-          .values({
-            projectId,
-            email,
-            token: randomUUID(),
-            permission: permission as SharePermission,
-          })
-          .returning({ token: boardShares.token, permission: boardShares.permission })
-      )[0];
+          .update(boardShares)
+          .set({ permission })
+          .where(eq(boardShares.token, share.token));
+        share = { ...share, permission };
+      }
+    } else {
+      const inserted = await db
+        .insert(boardShares)
+        .values({
+          projectId,
+          email,
+          token: randomUUID(),
+          permission: permission as SharePermission,
+        })
+        .returning({
+          token: boardShares.token,
+          email: boardShares.email,
+          permission: boardShares.permission,
+        });
+      share = inserted[0];
+    }
 
     return Response.json({
       token: share?.token,
@@ -82,22 +94,15 @@ export async function DELETE(
 
   const { projectId } = await params;
   try {
-    const result = await db
-      .delete(boardShares)
-      .where(
-        and(
-          eq(boardShares.projectId, projectId),
-          eq(
-            boardShares.projectId,
-            db
-              .select({ projectId: boards.projectId })
-              .from(boards)
-              .where(and(eq(boards.projectId, projectId), eq(boards.userEmail, userEmail)))
-              .limit(1),
-          ),
-        ),
-      );
-    return Response.json({ revoked: result.rowCount > 0 });
+    const [board] = await db
+      .select({ projectId: boards.projectId })
+      .from(boards)
+      .where(and(eq(boards.projectId, projectId), eq(boards.userEmail, userEmail)))
+      .limit(1);
+    if (!board) return Response.json({ error: "Project not found." }, { status: 404 });
+
+    await db.delete(boardShares).where(eq(boardShares.projectId, projectId));
+    return Response.json({ revoked: true });
   } catch (error) {
     console.error("Failed to revoke board shares.", error);
     return Response.json({ error: "Unable to revoke share links right now." }, { status: 500 });
