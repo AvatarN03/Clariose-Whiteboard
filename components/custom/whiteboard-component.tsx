@@ -549,10 +549,6 @@ export const WhiteboardComponent = React.forwardRef<
         setInitialData(snapshot);
         excalidrawApi?.updateScene({
           elements: snapshot.elements,
-          appState: {
-            ...normalizeAppState(snapshot.appState),
-            viewModeEnabled: readOnly,
-          },
           files: snapshot.files,
         });
       },
