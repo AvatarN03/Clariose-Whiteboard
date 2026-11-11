@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { documents } from "@/db/schema";
 import { getOwnedBoard } from "@/lib/documents/access";
@@ -15,6 +15,11 @@ type RouteContext = {
 };
 
 async function getAuthorizedParams(context: RouteContext) {
+  const { isAuthenticated } = await auth();
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const user = await currentUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress;
   const { projectId, documentId: documentIdParam } = await context.params;
@@ -28,8 +33,11 @@ function documentWhere(projectId: string, documentId: number) {
 }
 
 export async function GET(_request: Request, context: RouteContext) {
-  const { user, userEmail, projectId, documentId } =
-    await getAuthorizedParams(context);
+  const authorized = await getAuthorizedParams(context);
+  if (!authorized) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { user, userEmail, projectId, documentId } = authorized;
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -69,8 +77,11 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const { user, userEmail, projectId, documentId } =
-    await getAuthorizedParams(context);
+  const authorized = await getAuthorizedParams(context);
+  if (!authorized) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { user, userEmail, projectId, documentId } = authorized;
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -170,8 +181,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const { user, userEmail, projectId, documentId } =
-    await getAuthorizedParams(context);
+  const authorized = await getAuthorizedParams(context);
+  if (!authorized) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { user, userEmail, projectId, documentId } = authorized;
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }

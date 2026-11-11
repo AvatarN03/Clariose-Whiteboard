@@ -1,5 +1,5 @@
 import { desc, eq } from "drizzle-orm";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { documents } from "@/db/schema";
 import { getOwnedBoard } from "@/lib/documents/access";
@@ -10,6 +10,11 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
+  const { isAuthenticated } = await auth();
+  if (!isAuthenticated) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const user = await currentUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -53,6 +58,11 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const { isAuthenticated } = await auth();
+  if (!isAuthenticated) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const user = await currentUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import {
   Show,
   SignInButton,
@@ -17,7 +18,15 @@ const boardItems = [
   { label: "Ship a first pass", x: "bottom-10 left-[44%]", tone: "bg-[#fae8ff]" },
 ];
 
-export default async function Home() {
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
   const { isAuthenticated } = await auth();
 
   if (isAuthenticated) {

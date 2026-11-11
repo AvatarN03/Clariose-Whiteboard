@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -34,6 +34,11 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const { isAuthenticated } = await auth();
+  if (!isAuthenticated) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const user = await currentUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -90,6 +95,11 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const { isAuthenticated } = await auth();
+  if (!isAuthenticated) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const user = await currentUser();
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
