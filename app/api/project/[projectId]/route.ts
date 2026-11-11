@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { currentUser } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { boards } from "@/db/schema";
 
@@ -9,6 +10,7 @@ type RouteContext = {
 
 type UpdateBoardBody = {
   archived?: unknown;
+  projectName?: unknown;
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -33,9 +35,20 @@ export async function PATCH(request: Request, context: RouteContext) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  if (typeof body.archived !== "boolean") {
+  const hasArchiveUpdate = typeof body.archived === "boolean";
+  const projectName =
+    typeof body.projectName === "string" ? body.projectName.trim() : null;
+
+  if (hasArchiveUpdate === (projectName !== null)) {
     return Response.json(
-      { error: "The archived value must be a boolean." },
+      { error: "Provide either a board name or an archived value." },
+      { status: 400 },
+    );
+  }
+
+  if (projectName !== null && (!projectName || projectName.length > 120)) {
+    return Response.json(
+      { error: "Board names must be between 1 and 120 characters." },
       { status: 400 },
     );
   }
@@ -45,7 +58,11 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const [board] = await db
       .update(boards)
-      .set({ archivedAt: body.archived ? new Date().toISOString() : null })
+      .set(
+        projectName !== null
+          ? { projectName }
+          : { archivedAt: body.archived ? new Date().toISOString() : null },
+      )
       .where(and(eq(boards.projectId, projectId), eq(boards.userEmail, userEmail)))
       .returning({
         projectId: boards.projectId,
@@ -56,6 +73,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (!board) {
       return Response.json({ error: "Board not found." }, { status: 404 });
     }
+
+    revalidatePath(`/workspace/${projectId}`);
+    revalidatePath("/dashboard");
 
     return Response.json({ board });
   } catch (error) {

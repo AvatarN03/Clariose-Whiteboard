@@ -4,6 +4,7 @@ import * as React from "react";
 import { Copy, Share2 } from "lucide-react";
 import { useToastManager } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogClose,
@@ -15,7 +16,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function ShareBoardDialog({ projectId }: { projectId: string }) {
+export function ShareBoardDialog({
+  projectId,
+  compact = false,
+  menuItem = false,
+}: {
+  projectId: string;
+  compact?: boolean;
+  menuItem?: boolean;
+}) {
   const toastManager = useToastManager();
   const [permission, setPermission] = React.useState<"viewer" | "editor">("viewer");
   const [email, setEmail] = React.useState("");
@@ -63,14 +72,22 @@ export function ShareBoardDialog({ projectId }: { projectId: string }) {
     }}>
       <DialogTrigger
         render={
-          <button
-            type="button"
-            className="cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3b3a36]"
-          />
+          menuItem ? (
+            <DropdownMenuItem className="cursor-pointer" />
+          ) : (
+            <button
+              type="button"
+              aria-label="Share board"
+              title="Share board"
+              className={compact
+                ? "grid size-8 cursor-pointer place-items-center rounded-lg border border-border bg-background text-foreground transition-colors hover:bg-accent"
+                : "cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3b3a36]"}
+            />
+          )
         }
       >
-        <Share2 className="mr-1.5 inline size-3.5" aria-hidden="true" />
-        Share
+        <Share2 className={menuItem || compact ? "size-4" : "mr-1.5 inline size-3.5"} aria-hidden="true" />
+        {!compact ? "Share" : null}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

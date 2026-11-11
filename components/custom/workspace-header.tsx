@@ -1,7 +1,10 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToastManager } from "@/components/ui/toast";
 import { BrandLogo } from "@/components/custom/brand-logo";
 import { ThemeToggle } from "@/components/custom/theme-toggle";
@@ -10,8 +13,17 @@ import {
   Ellipsis,
   FileText,
   RefreshCw,
+  Save,
   SquarePen,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +55,7 @@ type WorkspaceHeaderProps = {
   projectId: string;
   canEdit?: boolean;
   isShared?: boolean;
+  onRename?: (projectName: string) => Promise<boolean>;
 };
 
 export function WorkspaceHeader({
@@ -56,28 +69,140 @@ export function WorkspaceHeader({
   projectId,
   canEdit = true,
   isShared = false,
+  onRename,
 }: WorkspaceHeaderProps) {
   const toastManager = useToastManager();
+  const [isRenaming, setIsRenaming] = React.useState(false);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = React.useState(false);
+  const [draftName, setDraftName] = React.useState(projectName);
+  const [isRenameSaving, setIsRenameSaving] = React.useState(false);
+  const renameInputRef = React.useRef<HTMLInputElement>(null);
+  const canRename = Boolean(onRename) && !isShared;
+
+  React.useEffect(() => {
+    if (!isRenaming && !isRenameDialogOpen) {
+      setDraftName(projectName);
+    }
+  }, [isRenameDialogOpen, isRenaming, projectName]);
+
+  const beginRename = (mobile = false) => {
+    if (!canRename) return;
+    setDraftName(projectName);
+    if (mobile) {
+      setIsRenameDialogOpen(true);
+      return;
+    }
+    setIsRenaming(true);
+    window.requestAnimationFrame(() => renameInputRef.current?.select());
+  };
+
+  const cancelRename = () => {
+    setDraftName(projectName);
+    setIsRenaming(false);
+    setIsRenameDialogOpen(false);
+  };
+
+  const submitRename = async () => {
+    const nextName = draftName.trim();
+    if (!nextName || nextName === projectName) {
+      cancelRename();
+      return;
+    }
+    if (!onRename) return;
+
+    setIsRenameSaving(true);
+    const renamed = await onRename(nextName);
+    setIsRenameSaving(false);
+    if (renamed) {
+      setIsRenaming(false);
+      setIsRenameDialogOpen(false);
+      toastManager.add({ title: "Board renamed", type: "success" });
+    } else {
+      toastManager.add({
+        title: "Board not renamed",
+        description: "Try a name between 1 and 120 characters.",
+        type: "error",
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    const saved = await onSave();
+    toastManager.add({
+      title: saved
+        ? activeTab === "docs"
+          ? "Document saved"
+          : "Workspace saved"
+        : activeTab === "docs"
+          ? "Document not saved"
+          : "Workspace not saved",
+      description: saved
+        ? activeTab === "docs"
+          ? "Your document was saved to the database."
+          : "Your whiteboard was saved to the database."
+        : activeTab === "docs"
+          ? "Keep editing, then try saving again."
+          : "The whiteboard is still loading. Try saving again.",
+      type: saved ? "success" : "error",
+    });
+  };
 
   return (
     <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4 text-foreground sm:px-6">
-      <Link
-        href="/dashboard"
-        className="flex min-w-0 shrink-0 items-center gap-2 cursor-pointer"
-        aria-label="Go to dashboard"
-        onClick={(event) => {
-          event.preventDefault();
-          onRequestLeave();
-        }}
-      >
-        <BrandLogo mobileIconOnly nameClassName="text-lg" />
-        <span className="text-sm text-muted-foreground" aria-hidden="true">
-          /
-        </span>
-        <span className="max-w-28 truncate text-sm font-medium sm:max-w-44">
-          {projectName}
-        </span>
-      </Link>
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
+        <Link
+          href="/dashboard"
+          className="flex shrink-0 items-center gap-2 cursor-pointer"
+          aria-label="Go to dashboard"
+          onClick={(event) => {
+            event.preventDefault();
+            onRequestLeave();
+          }}
+        >
+          <BrandLogo mobileIconOnly nameClassName="text-lg" />
+          <span className="text-sm text-muted-foreground" aria-hidden="true">/</span>
+        </Link>
+        {isRenaming ? (
+          <form
+            className="hidden min-w-0 md:block"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitRename();
+            }}
+          >
+            <input
+              ref={renameInputRef}
+              value={draftName}
+              maxLength={120}
+              disabled={isRenameSaving}
+              onChange={(event) => setDraftName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelRename();
+                }
+              }}
+              aria-label="Board name"
+              className="h-8 w-44 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus:border-[#ec6338] focus:ring-3 focus:ring-[#ec6338]/15"
+            />
+          </form>
+        ) : (
+          <button
+            type="button"
+            disabled={!canRename}
+            onDoubleClick={() => beginRename()}
+            onClick={() => {
+              if (!window.matchMedia("(min-width: 768px)").matches) {
+                beginRename(true);
+              }
+            }}
+            title={canRename ? "Double-click to rename" : undefined}
+            className="max-w-28 truncate text-left text-sm font-medium disabled:cursor-default sm:max-w-44 md:hover:text-[#ec6338]"
+          >
+            {projectName}
+          </button>
+        )}
+      </div>
 
       <TooltipProvider>
         <div className="absolute left-1/2 flex -translate-x-1/2 rounded-lg border border-border bg-muted p-1">
@@ -125,26 +250,7 @@ export function WorkspaceHeader({
             type="button"
             disabled={isSaving}
             className="cursor-pointer rounded-lg bg-[#ec6338] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#d9562d]"
-            onClick={async () => {
-              const saved = await onSave();
-              toastManager.add({
-                title: saved
-                  ? activeTab === "docs"
-                    ? "Document saved"
-                    : "Workspace saved"
-                  : activeTab === "docs"
-                    ? "Document not saved"
-                    : "Workspace not saved",
-                description: saved
-                  ? activeTab === "docs"
-                    ? "Your document was saved to the database."
-                    : "Your whiteboard was saved to the database."
-                  : activeTab === "docs"
-                    ? "Keep editing, then try saving again."
-                    : "The whiteboard is still loading. Try saving again.",
-                type: saved ? "success" : "error",
-              });
-            }}
+            onClick={handleSave}
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
@@ -152,34 +258,6 @@ export function WorkspaceHeader({
         </div>
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle />
-          {!isShared ? <ShareBoardDialog projectId={projectId} /> : null}
-          {canEdit ? <button
-            type="button"
-            disabled={isSaving}
-            className="cursor-pointer rounded-lg bg-[#ec6338] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#d9562d]"
-            onClick={async () => {
-              const saved = await onSave();
-              toastManager.add({
-                title: saved
-                  ? activeTab === "docs"
-                    ? "Document saved"
-                    : "Workspace saved"
-                  : activeTab === "docs"
-                    ? "Document not saved"
-                    : "Workspace not saved",
-                description: saved
-                  ? activeTab === "docs"
-                    ? "Your document was saved to the database."
-                    : "Your whiteboard was saved to the database."
-                  : activeTab === "docs"
-                    ? "Keep editing, then try saving again."
-                    : "The whiteboard is still loading. Try saving again.",
-                type: saved ? "success" : "error",
-              });
-            }}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </button> : null}
         </div>
         <div className="md:hidden">
           <DropdownMenu>
@@ -190,6 +268,7 @@ export function WorkspaceHeader({
               <Ellipsis className="size-4" aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-36">
+              {!isShared ? <ShareBoardDialog projectId={projectId} menuItem /> : null}
               <DropdownMenuItem
                 disabled={isSaving}
                 onClick={onRefresh}
@@ -198,10 +277,62 @@ export function WorkspaceHeader({
                 <RefreshCw className="size-4" aria-hidden="true" />
                 Refresh
               </DropdownMenuItem>
+              {canEdit ? (
+                <DropdownMenuItem
+                  disabled={isSaving}
+                  onClick={() => void handleSave()}
+                  className="!mt-1 !bg-[#ec6338] !font-medium !text-white hover:!bg-[#d9562d] focus:!bg-[#d9562d] focus:!text-white"
+                >
+                  <Save className="size-4" aria-hidden="true" />
+                  {isSaving ? "Saving..." : "Save"}
+                </DropdownMenuItem>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </ButtonGroup>
+      <Dialog
+        open={isRenameDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && !isRenameSaving) cancelRename();
+          else setIsRenameDialogOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename board</DialogTitle>
+            <DialogDescription>Choose a clear name for this workspace.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitRename();
+            }}
+          >
+            <Input
+              autoFocus
+              value={draftName}
+              maxLength={120}
+              disabled={isRenameSaving}
+              onChange={(event) => setDraftName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelRename();
+                }
+              }}
+              aria-label="Board name"
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" disabled={isRenameSaving} onClick={cancelRename}>Cancel</Button>
+              <Button type="submit" disabled={isRenameSaving || !draftName.trim()}>
+                {isRenameSaving ? "Saving..." : "Save name"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

@@ -181,6 +181,32 @@ export function WorkspaceView({
     setLoadAttempt((attempt) => attempt + 1);
   }, []);
 
+  const renameWorkspace = React.useCallback(
+    async (nextProjectName: string) => {
+      try {
+        const response = await fetch(`/api/project/${projectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectName: nextProjectName }),
+        });
+        if (!response.ok) return false;
+
+        const data = (await response.json()) as {
+          board?: { projectName?: string };
+        };
+        const savedName = data.board?.projectName;
+        if (!savedName) return false;
+        setProjectName(savedName);
+        document.title = `${savedName} / Clariose`;
+        return true;
+      } catch (error) {
+        console.error("Unable to rename the workspace.", error);
+        return false;
+      }
+    },
+    [projectId],
+  );
+
   const saveActiveTab = React.useCallback(async () => {
     if (activeTab === "docs") {
       return docsRef.current?.save() ?? true;
@@ -266,6 +292,7 @@ export function WorkspaceView({
         isSaving={isSaving || isDocsSaving}
         canEdit={permission === "editor"}
         isShared={Boolean(shareToken)}
+        onRename={shareToken ? undefined : renameWorkspace}
       />
       <div className="min-h-0 flex-1">
         <div className={`min-h-0 ${activeTab === "whiteboard" ? "flex" : "hidden"}`}>
