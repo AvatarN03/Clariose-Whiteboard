@@ -67,6 +67,44 @@ html {
   display: none !important;
 }
 
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  margin: 1.75rem 0 0.75rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.markdown-preview h1 { font-size: 1.875rem; }
+.markdown-preview h2 { font-size: 1.5rem; }
+.markdown-preview h3 { font-size: 1.25rem; }
+.markdown-preview p { margin: 0.75rem 0; }
+.markdown-preview strong { font-weight: 650; }
+.markdown-preview del { color: var(--muted-foreground); }
+.markdown-preview ul,
+.markdown-preview ol { margin: 0.75rem 0; padding-left: 1.5rem; }
+.markdown-preview ul { list-style: disc; }
+.markdown-preview ol { list-style: decimal; }
+.markdown-preview ul.contains-task-list { padding-left: 0; list-style: none; }
+.markdown-preview li.task-list-item { display: flex; align-items: flex-start; gap: 0.25rem; }
+.markdown-preview li > ul,
+.markdown-preview li > ol { margin: 0.25rem 0; }
+.markdown-preview blockquote { margin: 1rem 0; border-left: 2px solid #ec6338; padding-left: 1rem; color: var(--muted-foreground); }
+.markdown-preview a { overflow-wrap: anywhere; color: #d9562d; text-decoration: underline; text-underline-offset: 2px; }
+.markdown-preview img { display: block; max-width: 100%; max-height: 30rem; margin: 1rem 0; border: 1px solid var(--border); border-radius: var(--radius-lg); object-fit: contain; }
+.markdown-preview pre { overflow-x: auto; max-width: 100%; margin: 1rem 0; padding: 1rem; border-radius: var(--radius-lg); background: var(--muted); }
+.markdown-preview code { padding: 0.1rem 0.3rem; border-radius: 0.25rem; background: var(--muted); font-family: var(--font-geist-mono); font-size: 0.875em; }
+.markdown-preview pre code { padding: 0; background: transparent; }
+.markdown-preview table { min-width: 100%; margin: 1rem 0; border-collapse: collapse; }
+.markdown-preview th,
+.markdown-preview td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; }
+.markdown-preview th { background: var(--muted); font-weight: 650; }
+.markdown-preview hr { margin: 1.5rem 0; border-color: var(--border); }
+.markdown-preview input[type="checkbox"] { margin-right: 0.5rem; accent-color: #ec6338; }
+
 .workspace-whiteboard
   .excalidraw
   .dropdown-menu-group:has(
