@@ -38,6 +38,18 @@ function getMarkdown(content: unknown) {
   return "";
 }
 
+function documentsMatch(
+  left: WorkspaceDocument,
+  right: WorkspaceDocument | null,
+) {
+  return Boolean(
+    right &&
+      left.id === right.id &&
+      left.title === right.title &&
+      JSON.stringify(left.content) === JSON.stringify(right.content),
+  );
+}
+
 export const DocsComponent = React.forwardRef<DocsComponentHandle, DocsComponentProps>(
   function DocsComponent({ projectId, onSavingChange }, ref) {
     const [document, setDocument] = React.useState<WorkspaceDocument | null>(null);
@@ -69,7 +81,7 @@ export const DocsComponent = React.forwardRef<DocsComponentHandle, DocsComponent
 
         const data = (await response.json()) as { document: WorkspaceDocument };
         const currentDocument = documentRef.current;
-        if (currentDocument && currentDocument.id === draft.id && currentDocument.title === draft.title && JSON.stringify(currentDocument.content) === JSON.stringify(draft.content)) {
+        if (currentDocument && documentsMatch(currentDocument, draft)) {
           documentRef.current = data.document;
           savedDocumentRef.current = data.document;
           isDirtyRef.current = false;
@@ -77,6 +89,7 @@ export const DocsComponent = React.forwardRef<DocsComponentHandle, DocsComponent
           setSaveState("saved");
         } else {
           setSaveState("unsaved");
+          return false;
         }
         return true;
       } catch (error) {
@@ -135,15 +148,15 @@ export const DocsComponent = React.forwardRef<DocsComponentHandle, DocsComponent
         if (!currentDocument) return currentDocument;
         const draft = { ...currentDocument, ...updates };
         documentRef.current = draft;
-        isDirtyRef.current = true;
-        setSaveState("unsaved");
+        isDirtyRef.current = !documentsMatch(draft, savedDocumentRef.current);
+        setSaveState(isDirtyRef.current ? "unsaved" : "saved");
         return draft;
       });
     }, []);
 
     React.useEffect(() => {
-      if (!document || !isDirtyRef.current) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (!document || !isDirtyRef.current) return;
       const snapshot = { ...document };
       saveTimerRef.current = setTimeout(() => void saveDocument(snapshot), 60_000);
     }, [document, saveDocument]);

@@ -60,7 +60,6 @@ type WhiteboardComponentProps = {
   projectId: string;
   projectName: string;
   initialSnapshot?: SceneSnapshot | null;
-  initialSnapshotUpdatedAt?: string | null;
   onOpenAi: () => void;
   readOnly?: boolean;
 };
@@ -73,7 +72,7 @@ export type WhiteboardComponentHandle = {
   save: () => boolean;
   getSnapshot: () => SceneSnapshot | null;
   hasUnsyncedChanges: () => boolean;
-  markSynced: () => void;
+  markSynced: (syncedSnapshot?: SceneSnapshot) => void;
   discard: () => void;
   getContext: () => DiagramContext | null;
   applyProposal: (proposal: DiagramProposal, mode: "add" | "replace-selection") => ApplyProposalResult;
@@ -86,6 +85,12 @@ export type SceneSnapshot = {
   appState: Partial<AppState>;
   files: BinaryFiles;
 };
+
+function getSceneFingerprint(scene: SceneSnapshot): string {
+  // App state includes transient UI details (selection, viewport, active tool)
+  // that Excalidraw emits during hydration. They are not unsaved board work.
+  return serializeAsJSON(scene.elements, {}, scene.files, "database");
+}
 
 function normalizeAppState(appState: Partial<AppState>): Partial<AppState> {
   // JSON snapshots can turn Excalidraw's collaborators Map into an object.
@@ -130,7 +135,7 @@ export const WhiteboardComponent = React.forwardRef<
   WhiteboardComponentHandle,
   WhiteboardComponentProps
 >(function WhiteboardComponent(
-  { projectId, projectName, initialSnapshot, initialSnapshotUpdatedAt, onOpenAi, readOnly = false },
+  { projectId, projectName, initialSnapshot, onOpenAi, readOnly = false },
   ref,
 ) {
   const storageKey = `whiteboard-scene:${projectId}`;
@@ -139,6 +144,7 @@ export const WhiteboardComponent = React.forwardRef<
   const sceneRef = React.useRef<SceneSnapshot | null>(null);
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasUnsyncedChangesRef = React.useRef(false);
+  const syncedSceneFingerprintRef = React.useRef<string | null>(null);
   const lastAiInsertionRef = React.useRef<{
     generatedElementIds: Set<string>;
     removedElements: ExcalidrawElement[];
@@ -214,7 +220,6 @@ export const WhiteboardComponent = React.forwardRef<
         storageKey,
         serializeAsJSON(scene.elements, scene.appState, scene.files, "local"),
       );
-      localStorage.setItem(`${storageKey}:updated-at`, new Date().toISOString());
       return true;
     } catch (error) {
       console.error("Unable to save the whiteboard locally.", error);
@@ -244,29 +249,33 @@ export const WhiteboardComponent = React.forwardRef<
       if (savedScene) {
         const restored = restore(JSON.parse(savedScene), null, null);
         const localSnapshot = normalizeScene(restored);
-        const localUpdatedAt = localStorage.getItem(`${storageKey}:updated-at`);
-        const localIsNewer =
-          Boolean(initialSnapshotUpdatedAt) &&
-          Boolean(localUpdatedAt) &&
-          localUpdatedAt! > initialSnapshotUpdatedAt!;
-        const localIsUnsynced =
-          localStorage.getItem(syncedStorageKey) !== "true";
+        const normalizedSaved = initialSnapshot
+          ? normalizeScene(initialSnapshot)
+          : null;
+        const localDiffersFromSaved =
+          normalizedSaved !== null &&
+          getSceneFingerprint(localSnapshot) !== getSceneFingerprint(normalizedSaved);
 
-        if (initialSnapshot && (localIsUnsynced || localIsNewer)) {
-          setConflict({ local: localSnapshot, saved: initialSnapshot });
+        if (normalizedSaved && localDiffersFromSaved) {
+          syncedSceneFingerprintRef.current = getSceneFingerprint(normalizedSaved);
+          setConflict({ local: localSnapshot, saved: normalizedSaved });
           return;
         }
 
-        if (initialSnapshot) {
-          const normalizedSaved = normalizeScene(initialSnapshot);
+        if (normalizedSaved) {
           sceneRef.current = normalizedSaved;
+          syncedSceneFingerprintRef.current = getSceneFingerprint(normalizedSaved);
           hasUnsyncedChangesRef.current = false;
+          localStorage.setItem(syncedStorageKey, "true");
           setInitialData(normalizedSaved);
           return;
         }
 
         sceneRef.current = localSnapshot;
-        hasUnsyncedChangesRef.current = localIsUnsynced;
+        hasUnsyncedChangesRef.current = localStorage.getItem(syncedStorageKey) !== "true";
+        syncedSceneFingerprintRef.current = hasUnsyncedChangesRef.current
+          ? null
+          : getSceneFingerprint(localSnapshot);
         setInitialData(localSnapshot);
         return;
       }
@@ -274,7 +283,9 @@ export const WhiteboardComponent = React.forwardRef<
       if (initialSnapshot) {
         const normalizedSaved = normalizeScene(initialSnapshot);
         sceneRef.current = normalizedSaved;
+        syncedSceneFingerprintRef.current = getSceneFingerprint(normalizedSaved);
         hasUnsyncedChangesRef.current = false;
+        localStorage.setItem(syncedStorageKey, "true");
         setInitialData(normalizedSaved);
         return;
       }
@@ -295,11 +306,11 @@ export const WhiteboardComponent = React.forwardRef<
       appState: blankScene.appState ?? {},
       files: {},
     };
+    syncedSceneFingerprintRef.current = getSceneFingerprint(sceneRef.current);
     hasUnsyncedChangesRef.current = false;
     setInitialData(blankScene);
   }, [
     initialSnapshot,
-    initialSnapshotUpdatedAt,
     projectId,
     storageKey,
     syncedStorageKey,
@@ -328,6 +339,24 @@ export const WhiteboardComponent = React.forwardRef<
     });
   }, [canvasTheme, canvasViewBackgroundColor, excalidrawApi]);
 
+  const updateSyncStatus = React.useCallback(
+    (scene: SceneSnapshot) => {
+      const isDirty =
+        syncedSceneFingerprintRef.current === null ||
+        getSceneFingerprint(scene) !== syncedSceneFingerprintRef.current;
+      hasUnsyncedChangesRef.current = isDirty;
+
+      try {
+        localStorage.setItem(syncedStorageKey, isDirty ? "false" : "true");
+      } catch (error) {
+        console.error("Unable to update the local whiteboard sync state.", error);
+      }
+
+      return isDirty;
+    },
+    [syncedStorageKey],
+  );
+
   function handleChange(
     elements: readonly ExcalidrawElement[],
     appState: AppState,
@@ -345,30 +374,36 @@ export const WhiteboardComponent = React.forwardRef<
       setTheme(appState.theme);
     }
 
-    hasUnsyncedChangesRef.current = true;
+    const isDirty = updateSyncStatus(sceneRef.current);
 
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
     }
-    saveTimerRef.current = setTimeout(() => {
-      saveScene();
-      saveTimerRef.current = null;
-    }, 5000);
+    if (isDirty) {
+      saveTimerRef.current = setTimeout(() => {
+        saveScene();
+        saveTimerRef.current = null;
+      }, 5000);
+    }
   }
 
-  const handleMarkSynced = React.useCallback(() => {
+  const handleMarkSynced = React.useCallback((syncedSnapshot?: SceneSnapshot) => {
     try {
-      localStorage.setItem(syncedStorageKey, "true");
-      hasUnsyncedChangesRef.current = false;
+      const snapshot = syncedSnapshot ?? sceneRef.current;
+      if (!snapshot) return;
+
+      syncedSceneFingerprintRef.current = getSceneFingerprint(snapshot);
+      if (sceneRef.current) updateSyncStatus(sceneRef.current);
     } catch (error) {
       console.error("Unable to mark the whiteboard as synced.", error);
     }
-  }, [syncedStorageKey]);
+  }, [updateSyncStatus]);
 
   const handleDiscard = React.useCallback(() => {
     try {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(syncedStorageKey);
+      localStorage.removeItem(`${storageKey}:updated-at`);
       hasUnsyncedChangesRef.current = false;
     } catch (error) {
       console.error("Unable to discard the local whiteboard.", error);
@@ -448,7 +483,7 @@ export const WhiteboardComponent = React.forwardRef<
         previousSelectedElementIds: scene.appState.selectedElementIds ?? {},
         previousSelectedGroupIds: scene.appState.selectedGroupIds ?? {},
       };
-      hasUnsyncedChangesRef.current = true;
+      updateSyncStatus(sceneRef.current);
       excalidrawApi?.updateScene({
         elements: nextElements,
         appState: {
@@ -464,7 +499,7 @@ export const WhiteboardComponent = React.forwardRef<
         removedElementIds: [...removedIds],
       };
     },
-    [excalidrawApi, saveScene],
+    [excalidrawApi, saveScene, updateSyncStatus],
   );
 
   const undoLastAiInsertion = React.useCallback(() => {
@@ -485,7 +520,7 @@ export const WhiteboardComponent = React.forwardRef<
       },
       files: scene.files,
     };
-    hasUnsyncedChangesRef.current = true;
+    updateSyncStatus(sceneRef.current);
     excalidrawApi?.updateScene({
       elements: nextElements,
       appState: {
@@ -496,7 +531,7 @@ export const WhiteboardComponent = React.forwardRef<
     lastAiInsertionRef.current = null;
     saveScene();
     return true;
-  }, [excalidrawApi, saveScene]);
+  }, [excalidrawApi, saveScene, updateSyncStatus]);
 
   const resolveConflict = React.useCallback(
     (choice: "local" | "saved" | "both") => {
@@ -506,7 +541,8 @@ export const WhiteboardComponent = React.forwardRef<
 
       if (choice === "local") {
         sceneRef.current = conflict.local;
-        hasUnsyncedChangesRef.current = true;
+        updateSyncStatus(conflict.local);
+        saveScene();
         setInitialData(conflict.local);
       } else {
         if (choice === "both") {
@@ -521,15 +557,14 @@ export const WhiteboardComponent = React.forwardRef<
           );
         }
         sceneRef.current = conflict.saved;
-        hasUnsyncedChangesRef.current = false;
         setInitialData(conflict.saved);
         saveScene();
-        handleMarkSynced();
+        handleMarkSynced(conflict.saved);
       }
 
       setConflict(null);
     },
-    [conflict, handleMarkSynced, saveScene, storageKey],
+    [conflict, handleMarkSynced, saveScene, storageKey, updateSyncStatus],
   );
 
   React.useImperativeHandle(
@@ -545,7 +580,7 @@ export const WhiteboardComponent = React.forwardRef<
       undoLastAiInsertion,
       replaceSnapshot: (snapshot) => {
         sceneRef.current = snapshot;
-        hasUnsyncedChangesRef.current = false;
+        handleMarkSynced(snapshot);
         setInitialData(snapshot);
         excalidrawApi?.updateScene({
           elements: snapshot.elements,

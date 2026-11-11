@@ -79,12 +79,6 @@ export function WorkspaceHeader({
   const renameInputRef = React.useRef<HTMLInputElement>(null);
   const canRename = Boolean(onRename) && !isShared;
 
-  React.useEffect(() => {
-    if (!isRenaming && !isRenameDialogOpen) {
-      setDraftName(projectName);
-    }
-  }, [isRenameDialogOpen, isRenaming, projectName]);
-
   const beginRename = (mobile = false) => {
     if (!canRename) return;
     setDraftName(projectName);

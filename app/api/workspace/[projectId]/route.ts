@@ -138,6 +138,9 @@ export async function POST(
       .where(eq(whiteboardData.projectId, projectId))
       .limit(1);
 
+    const updatedAt = new Date().toISOString();
+    const snapshotVersion = existing ? existing.snapshotVersion + 1 : 1;
+
     if (existing) {
       if (
         typeof body.expectedSnapshotVersion === "number" &&
@@ -151,8 +154,8 @@ export async function POST(
       await db
         .update(whiteboardData)
         .set({
-          snapshotVersion: existing.snapshotVersion + 1,
-          updatedAt: new Date().toISOString(),
+          snapshotVersion,
+          updatedAt,
           elements: body.elements,
           appState: body.appState,
           files: body.files,
@@ -161,7 +164,8 @@ export async function POST(
     } else {
       await db.insert(whiteboardData).values({
         projectId,
-        snapshotVersion: 1,
+        snapshotVersion,
+        updatedAt,
         elements: body.elements,
         appState: body.appState,
         files: body.files,
@@ -173,7 +177,7 @@ export async function POST(
     revalidatePath(`/workspace/${projectId}`);
     revalidatePath("/dashboard");
 
-    return Response.json({ saved: true });
+    return Response.json({ saved: true, snapshotVersion, updatedAt });
   } catch (error) {
     console.error("Failed to save whiteboard.", error);
     return Response.json(

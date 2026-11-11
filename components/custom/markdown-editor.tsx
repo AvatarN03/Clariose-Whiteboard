@@ -181,6 +181,8 @@ export function MarkdownEditor({
       {mode === "write" ? (
         <>
           <div className="mt-4 flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1.5" aria-label="Markdown formatting toolbar">
+            {/* The callbacks are only invoked by a click, never while rendering. */}
+            {/* eslint-disable-next-line react-hooks/refs */}
             {toolbarActions.map(({ label, icon: Icon, onClick }) => (
               <Button key={label} type="button" variant="ghost" size="icon-sm" disabled={isSaving} onClick={onClick} aria-label={label} title={label}>
                 <Icon aria-hidden="true" />

@@ -164,8 +164,23 @@ export function WorkspaceView({
       if (!response.ok) {
         return false;
       }
+      const data = (await response.json()) as {
+        saved?: boolean;
+        snapshotVersion?: number;
+        updatedAt?: string;
+      };
+      if (
+        !data.saved ||
+        typeof data.snapshotVersion !== "number" ||
+        typeof data.updatedAt !== "string"
+      ) {
+        return false;
+      }
+
       whiteboardRef.current?.save();
-      whiteboardRef.current?.markSynced();
+      whiteboardRef.current?.markSynced(snapshot);
+      setInitialSnapshotVersion(data.snapshotVersion);
+      setInitialSnapshotUpdatedAt(data.updatedAt);
       return true;
     } catch (error) {
       console.error("Unable to save the whiteboard.", error);
@@ -302,7 +317,6 @@ export function WorkspaceView({
                 projectId={projectId}
                 projectName={projectName}
                 initialSnapshot={initialSnapshot}
-                initialSnapshotUpdatedAt={initialSnapshotUpdatedAt}
                 onOpenAi={openAiHelper}
                 readOnly={permission !== "editor"}
               />
