@@ -97,10 +97,11 @@ export async function POST(
     }
 
     const nextVersion = (existing?.snapshotVersion ?? 0) + 1;
+    const updatedAt = new Date().toISOString();
     if (existing) {
       await db.update(whiteboardData).set({
         snapshotVersion: nextVersion,
-        updatedAt: new Date().toISOString(),
+        updatedAt,
         elements: body.elements,
         appState: body.appState,
         files: body.files,
@@ -109,13 +110,14 @@ export async function POST(
       await db.insert(whiteboardData).values({
         projectId: share.projectId,
         snapshotVersion: nextVersion,
+        updatedAt,
         elements: body.elements,
         appState: body.appState,
         files: body.files,
       });
     }
 
-    return Response.json({ saved: true, snapshotVersion: nextVersion });
+    return Response.json({ saved: true, snapshotVersion: nextVersion, updatedAt });
   } catch (error) {
     console.error("Failed to save shared whiteboard.", error);
     return Response.json({ error: "Unable to save the shared whiteboard." }, { status: 500 });

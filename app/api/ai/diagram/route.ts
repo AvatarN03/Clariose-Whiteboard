@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { boards } from "@/db/schema";
+import { getShareByToken } from "@/lib/boards/sharing";
 import { DIAGRAM_CONTEXT_LIMITS, type DiagramContext } from "@/lib/ai/diagram-context";
 import { isDiagramType, type DiagramType } from "@/lib/ai/diagram-schema";
 import { AiProviderError, generateDiagram } from "@/lib/ai/provider";
@@ -30,6 +31,7 @@ type DiagramRequest = {
   prompt: string;
   context: DiagramContext;
   diagramType?: DiagramType;
+  shareToken?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -43,6 +45,7 @@ function isBoundedStringArray(value: unknown, maxItems: number, maxItemChars: nu
 function parseRequest(value: unknown): { success: true; data: DiagramRequest } | { success: false; error: string } {
   if (!isRecord(value)) return { success: false, error: "A JSON request body is required." };
   if (typeof value.projectId !== "string" || value.projectId.trim().length === 0 || value.projectId.length > 200) return { success: false, error: "A valid project ID is required." };
+  if (value.shareToken !== undefined && (typeof value.shareToken !== "string" || value.shareToken.length === 0 || value.shareToken.length > 200)) return { success: false, error: "An invalid share token was provided." };
   if (typeof value.prompt !== "string" || value.prompt.trim().length === 0 || value.prompt.length > MAX_PROMPT_CHARS) return { success: false, error: `Prompt must be between 1 and ${MAX_PROMPT_CHARS} characters.` };
   if (value.diagramType !== undefined && !isDiagramType(value.diagramType)) return { success: false, error: "The requested diagram type is not supported." };
   if (!isRecord(value.context)) return { success: false, error: "A diagram context is required." };
@@ -71,6 +74,7 @@ function parseRequest(value: unknown): { success: true; data: DiagramRequest } |
       prompt: value.prompt.trim(),
       context: context as DiagramContext,
       ...(value.diagramType ? { diagramType: value.diagramType } : {}),
+      ...(value.shareToken ? { shareToken: value.shareToken } : {}),
     },
   };
 }
@@ -111,11 +115,27 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [board] = await db
-      .select({ projectId: boards.projectId, projectName: boards.projectName })
-      .from(boards)
-      .where(and(eq(boards.projectId, parsed.data.projectId), eq(boards.userEmail, userEmail)))
-      .limit(1);
+    let board: { projectId: string; projectName: string } | undefined;
+    if (parsed.data.shareToken) {
+      const share = await getShareByToken(parsed.data.shareToken);
+      const shareEmail = share?.email.toLowerCase();
+      if (
+        !share ||
+        share.projectId !== parsed.data.projectId ||
+        shareEmail !== userEmail.toLowerCase() ||
+        share.permission !== "editor"
+      ) {
+        return Response.json({ error: "You do not have editor access to this shared board.", requestId }, { status: 403 });
+      }
+      board = { projectId: share.projectId, projectName: share.projectName };
+    } else {
+      const [ownedBoard] = await db
+        .select({ projectId: boards.projectId, projectName: boards.projectName })
+        .from(boards)
+        .where(and(eq(boards.projectId, parsed.data.projectId), eq(boards.userEmail, userEmail)))
+        .limit(1);
+      board = ownedBoard;
+    }
     if (!board) return Response.json({ error: "Project not found.", requestId }, { status: 404 });
 
     const rateLimit = consumeAiRateLimit(user.id, parsed.data.projectId);

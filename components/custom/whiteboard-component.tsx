@@ -61,6 +61,7 @@ type WhiteboardComponentProps = {
   projectName: string;
   initialSnapshot?: SceneSnapshot | null;
   onOpenAi: () => void;
+  onDirtyChange?: (isDirty: boolean) => void;
   readOnly?: boolean;
 };
 
@@ -135,7 +136,7 @@ export const WhiteboardComponent = React.forwardRef<
   WhiteboardComponentHandle,
   WhiteboardComponentProps
 >(function WhiteboardComponent(
-  { projectId, projectName, initialSnapshot, onOpenAi, readOnly = false },
+  { projectId, projectName, initialSnapshot, onOpenAi, onDirtyChange, readOnly = false },
   ref,
 ) {
   const storageKey = `whiteboard-scene:${projectId}`;
@@ -345,6 +346,7 @@ export const WhiteboardComponent = React.forwardRef<
         syncedSceneFingerprintRef.current === null ||
         getSceneFingerprint(scene) !== syncedSceneFingerprintRef.current;
       hasUnsyncedChangesRef.current = isDirty;
+      onDirtyChange?.(isDirty);
 
       try {
         localStorage.setItem(syncedStorageKey, isDirty ? "false" : "true");
@@ -354,7 +356,7 @@ export const WhiteboardComponent = React.forwardRef<
 
       return isDirty;
     },
-    [syncedStorageKey],
+    [onDirtyChange, syncedStorageKey],
   );
 
   function handleChange(

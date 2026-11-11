@@ -25,7 +25,16 @@ function getActiveTimestamps(key: string, now: number): number[] {
   return active;
 }
 
+function pruneExpiredBuckets(now: number) {
+  for (const [key, bucket] of buckets) {
+    const active = bucket.timestamps.filter((timestamp) => timestamp > now - WINDOW_MS);
+    if (active.length === 0) buckets.delete(key);
+    else buckets.set(key, { timestamps: active });
+  }
+}
+
 export function consumeAiRateLimit(userKey: string, projectKey: string, now = Date.now()): AiRateLimitResult {
+  pruneExpiredBuckets(now);
   const userLimit = envLimit("AI_RATE_LIMIT_PER_USER_PER_MINUTE", 10);
   const projectLimit = envLimit("AI_RATE_LIMIT_PER_PROJECT_PER_MINUTE", 20);
   const userTimestamps = getActiveTimestamps(`user:${userKey}`, now);

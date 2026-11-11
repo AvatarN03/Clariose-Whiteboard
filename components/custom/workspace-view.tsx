@@ -68,6 +68,7 @@ export function WorkspaceView({
   const [permission, setPermission] = React.useState<"viewer" | "editor">("editor");
   const [loadAttempt, setLoadAttempt] = React.useState(0);
   const [isDocsSaving, setIsDocsSaving] = React.useState(false);
+  const [isWhiteboardDirty, setIsWhiteboardDirty] = React.useState(false);
   const whiteboardRef = React.useRef<WhiteboardComponentHandle>(null);
   const docsRef = React.useRef<DocsComponentHandle>(null);
   const apiUrl = shareToken ? `/api/shared/${shareToken}` : `/api/workspace/${projectId}`;
@@ -314,32 +315,37 @@ export function WorkspaceView({
           <div className="min-w-0 flex-1">
               <WhiteboardComponent
                 ref={whiteboardRef}
-                projectId={projectId}
+                projectId={actualProjectId}
                 projectName={projectName}
                 initialSnapshot={initialSnapshot}
                 onOpenAi={openAiHelper}
+                onDirtyChange={setIsWhiteboardDirty}
                 readOnly={permission !== "editor"}
               />
           </div>
           {isAiOpen ? (
               <AiCanvasPanel
-                projectId={projectId}
+                projectId={actualProjectId}
+                shareToken={shareToken}
                 getContext={getDiagramContext}
                 onApply={applyDiagramProposal}
                 onUndo={undoAiInsertion}
                 onSave={saveWhiteboard}
                 isSaving={isSaving}
+                isWhiteboardDirty={isWhiteboardDirty}
                 onClose={() => setIsAiOpen(false)}
               />
           ) : null}
         </div>
-        <div className={`min-h-0 ${activeTab === "docs" ? "flex" : "hidden"}`}>
-          <DocsComponent
-            ref={docsRef}
-            projectId={projectId}
-            onSavingChange={setIsDocsSaving}
-          />
-        </div>
+        {activeTab === "docs" ? (
+          <div className="min-h-0 flex">
+            <DocsComponent
+              ref={docsRef}
+              projectId={projectId}
+              onSavingChange={setIsDocsSaving}
+            />
+          </div>
+        ) : null}
       </div>
       <AlertDialog
         open={isLeaveDialogOpen}

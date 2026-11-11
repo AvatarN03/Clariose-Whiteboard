@@ -4,17 +4,20 @@ import * as React from "react";
 import { Loader2, RotateCcw, Sparkles, X } from "lucide-react";
 import { DiagramPreview } from "@/components/custom/diagram-preview";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { DIAGRAM_TYPES, type DiagramProposal, type DiagramType } from "@/lib/ai/diagram-schema";
 import type { DiagramContext } from "@/lib/ai/diagram-context";
 import type { ApplyProposalResult } from "@/components/custom/whiteboard-component";
 
 type AiCanvasPanelProps = {
   projectId: string;
+  shareToken?: string;
   getContext: () => DiagramContext | null;
   onApply: (proposal: DiagramProposal, mode: "add" | "replace-selection") => ApplyProposalResult;
   onUndo: () => boolean;
   onSave: () => Promise<boolean>;
   isSaving: boolean;
+  isWhiteboardDirty: boolean;
   onClose: () => void;
 };
 
@@ -35,18 +38,27 @@ const diagramTypeLabels: Record<DiagramType, string> = {
   matrix: "2D matrix",
 };
 
-export function AiCanvasPanel({ projectId, getContext, onApply, onUndo, onSave, isSaving, onClose }: AiCanvasPanelProps) {
+export function AiCanvasPanel({ projectId, shareToken, getContext, onApply, onUndo, onSave, isSaving, isWhiteboardDirty, onClose }: AiCanvasPanelProps) {
   const [prompt, setPrompt] = React.useState("");
   const [diagramType, setDiagramType] = React.useState<DiagramType | "">("");
   const [panelState, setPanelState] = React.useState<PanelState>("idle");
   const [proposal, setProposal] = React.useState<DiagramProposal | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [applied, setApplied] = React.useState(false);
-  const [saved, setSaved] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [isMobile, setIsMobile] = React.useState(false);
   const requestControllerRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => {
     return () => requestControllerRef.current?.abort();
+  }, []);
+
+  React.useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
   }, []);
 
   async function generate() {
@@ -76,6 +88,7 @@ export function AiCanvasPanel({ projectId, getContext, onApply, onUndo, onSave, 
           prompt: trimmedPrompt,
           context,
           ...(diagramType ? { diagramType } : {}),
+          ...(shareToken ? { shareToken } : {}),
         }),
         signal: controller.signal,
       });
@@ -103,7 +116,7 @@ export function AiCanvasPanel({ projectId, getContext, onApply, onUndo, onSave, 
     setError(null);
     setPanelState("idle");
     setApplied(false);
-    setSaved(false);
+    setSaveError(null);
   }
 
   function apply(mode: "add" | "replace-selection") {
@@ -116,18 +129,18 @@ export function AiCanvasPanel({ projectId, getContext, onApply, onUndo, onSave, 
     }
     setError(null);
     setApplied(true);
-    setSaved(false);
+    setSaveError(null);
   }
 
   async function saveAppliedProposal() {
     const didSave = await onSave();
-    setSaved(didSave);
+    setSaveError(didSave ? null : "The board could not be saved. Try again after refreshing.");
   }
 
   const isGenerating = panelState === "generating";
 
-  return (
-    <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-background md:w-[22rem] lg:w-[25rem]" aria-label="AI diagram helper">
+  const panelContent = (
+    <>
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="grid size-8 place-items-center rounded-lg bg-[#ec6338]/15 text-[#ec6338]">
@@ -163,10 +176,18 @@ export function AiCanvasPanel({ projectId, getContext, onApply, onUndo, onSave, 
             )}
             {applied ? (
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => { onUndo(); setApplied(false); setSaved(false); }} className="cursor-pointer rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent">Undo insertion</button>
-                <button type="button" disabled={isSaving || saved} onClick={() => void saveAppliedProposal()} className="cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-2 text-xs font-medium text-white hover:bg-[#3b3a36] disabled:cursor-not-allowed disabled:opacity-50">{isSaving ? "Saving..." : saved ? "Saved" : "Save workspace"}</button>
+                <button type="button" onClick={() => {
+                  if (onUndo()) {
+                    setApplied(false);
+                    setSaveError(null);
+                  } else {
+                    setSaveError("That AI insertion can no longer be undone.");
+                  }
+                }} className="cursor-pointer rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent">Undo insertion</button>
+                <button type="button" disabled={isSaving || !isWhiteboardDirty} onClick={() => void saveAppliedProposal()} className="cursor-pointer rounded-lg bg-[#1d1d1b] px-3 py-2 text-xs font-medium text-white hover:bg-[#3b3a36] disabled:cursor-not-allowed disabled:opacity-50">{isSaving ? "Saving..." : isWhiteboardDirty ? "Save workspace" : "Saved"}</button>
               </div>
             ) : null}
+            {saveError ? <p className="mt-3 text-xs text-destructive" role="alert">{saveError}</p> : null}
             <button type="button" onClick={resetPreview} className="mt-3 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-accent">
               <RotateCcw className="size-4" aria-hidden="true" />
               Create another proposal
@@ -215,6 +236,7 @@ export function AiCanvasPanel({ projectId, getContext, onApply, onUndo, onSave, 
               {isGenerating ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Sparkles className="size-4" aria-hidden="true" />}
               {isGenerating ? "Creating proposal..." : "Create proposal"}
             </button>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">Your prompt and relevant board text are sent to the configured AI provider to generate a proposal.</p>
 
             {panelState === "error" && error ? (
               <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
@@ -236,6 +258,18 @@ export function AiCanvasPanel({ projectId, getContext, onApply, onUndo, onSave, 
           </>
         )}
       </div>
-    </aside>
+    </>
   );
+
+  if (isMobile) {
+    return (
+      <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
+        <SheetContent side="right" showCloseButton={false} className="flex h-dvh w-[min(100vw,28rem)] flex-col gap-0 overflow-hidden p-0">
+          {panelContent}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return <aside className="flex h-full w-full shrink-0 flex-col border-l border-border bg-background md:w-[22rem] lg:w-[25rem]" aria-label="AI diagram helper">{panelContent}</aside>;
 }
