@@ -64,6 +64,7 @@ export const boardShares = pgTable(
       .notNull()
       .references(() => boards.projectId),
     email: varchar("email").notNull(),
+    recipientUserId: varchar("recipient_user_id"),
     token: varchar("token").notNull(),
     permission: varchar("permission").notNull().default("viewer"),
     createdAt: timestamp("created_at", { mode: "string" })
@@ -77,6 +78,7 @@ export const boardShares = pgTable(
       table.email,
     ),
     index("board_shares_project_idx").on(table.projectId),
+    index("board_shares_recipient_user_idx").on(table.recipientUserId),
   ],
 );
 

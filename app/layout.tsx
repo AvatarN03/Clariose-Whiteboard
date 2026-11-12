@@ -20,7 +20,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             appearance={{ theme: shadcn }}
             signInForceRedirectUrl="/dashboard"
             signUpForceRedirectUrl="/dashboard"
-            dynamic
           >
             <Toaster>{children}</Toaster>
           </ClerkProvider>

@@ -14,6 +14,7 @@ export async function getShareByToken(token: string) {
       projectId: boards.projectId,
       projectName: boards.projectName,
       email: boardShares.email,
+      recipientUserId: boardShares.recipientUserId,
       permission: boardShares.permission,
       archivedAt: boards.archivedAt,
     })
@@ -80,6 +81,7 @@ export async function getOwnedShare(
       token: boardShares.token,
       permission: boardShares.permission,
       email: boardShares.email,
+      recipientUserId: boardShares.recipientUserId,
     })
     .from(boardShares)
     .innerJoin(boards, eq(boards.projectId, boardShares.projectId))

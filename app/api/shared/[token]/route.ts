@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { whiteboardData } from "@/db/schema";
+import { boardShares, whiteboardData } from "@/db/schema";
 import { getShareByToken } from "@/lib/boards/sharing";
 
 type SnapshotPayload = {
@@ -25,8 +25,17 @@ export async function GET(
     if (!share) return Response.json({ error: "Share link not found." }, { status: 404 });
     const user = await currentUser();
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
-    if (!email || email !== share.email.toLowerCase()) {
+    if (!user || !email || email !== share.email.toLowerCase()) {
       return Response.json({ error: "This invitation is for another account." }, { status: 403 });
+    }
+    if (share.recipientUserId && share.recipientUserId !== user.id) {
+      return Response.json({ error: "This invitation is assigned to another account." }, { status: 403 });
+    }
+    if (!share.recipientUserId) {
+      await db
+        .update(boardShares)
+        .set({ recipientUserId: user.id })
+        .where(eq(boardShares.token, token));
     }
 
     const [snapshot] = await db
@@ -77,8 +86,11 @@ export async function POST(
     if (!share) return Response.json({ error: "Share link not found." }, { status: 404 });
     const user = await currentUser();
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
-    if (!email || email !== share.email.toLowerCase()) {
+    if (!user || !email || email !== share.email.toLowerCase()) {
       return Response.json({ error: "This invitation is for another account." }, { status: 403 });
+    }
+    if (share.recipientUserId && share.recipientUserId !== user.id) {
+      return Response.json({ error: "This invitation is assigned to another account." }, { status: 403 });
     }
     if (share.permission !== "editor") {
       return Response.json({ error: "This share link is view-only." }, { status: 403 });

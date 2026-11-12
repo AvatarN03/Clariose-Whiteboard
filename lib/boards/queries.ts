@@ -1,6 +1,6 @@
-import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
-import { boards, whiteboardData } from "@/db/schema";
+import { boardShares, boards, whiteboardData } from "@/db/schema";
 
 const boardSelection = {
   id: boards.id,
@@ -34,4 +34,26 @@ export function getBoardsForUser(userEmail: string) {
 
 export function getArchivedBoardsForUser(userEmail: string) {
   return getBoards(userEmail, true);
+}
+
+export function getSharedBoardsForUser(userId: string, userEmail: string) {
+  return db
+    .select({
+      ...boardSelection,
+      shareToken: boardShares.token,
+      sharePermission: boardShares.permission,
+    })
+    .from(boardShares)
+    .innerJoin(boards, eq(boards.projectId, boardShares.projectId))
+    .leftJoin(whiteboardData, eq(whiteboardData.projectId, boards.projectId))
+    .where(
+      and(
+        or(
+          eq(boardShares.recipientUserId, userId),
+          eq(boardShares.email, userEmail.toLowerCase()),
+        ),
+        isNull(boards.archivedAt),
+      ),
+    )
+    .orderBy(desc(boardShares.createdAt));
 }

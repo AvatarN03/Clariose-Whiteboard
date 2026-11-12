@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { Archive, PanelsTopLeft, Plus, Settings2, Sparkles, Users } from "lucide-react";
+import { Archive, PanelsTopLeft, Plus, Settings2, Users } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -31,11 +31,6 @@ const workspaceLinks: SidebarLink[] = [
   { label: "All boards", href: "/dashboard", icon: PanelsTopLeft },
   { label: "Shared", href: "/dashboard/shared", icon: Users },
   { label: "Archive", href: "/dashboard/archive", icon: Archive },
-];
-
-const utilityLinks: SidebarLink[] = [
-  { label: "AI helper", href: "/dashboard/ai-helper", icon: Sparkles },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings2 },
 ];
 
 export function AppSidebar() {
@@ -73,10 +68,22 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarSection label="Workspace" links={workspaceLinks} pathname={pathname} />
-        <SidebarSection label="Tools" links={utilityLinks} pathname={pathname} />
       </SidebarContent>
 
       <SidebarFooter className="rounded-t-2xl bg-sidebar-primary p-3 text-sidebar-primary-foreground dark:bg-[#f8f7f4] dark:text-[#1d1d1b] group-data-[collapsible=icon]:p-2">
+        <SidebarMenu className="mb-3 gap-2">
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === "/dashboard/settings"}
+              tooltip="Settings"
+              className="cursor-pointer justify-start data-active:bg-[#ec6338] data-active:text-white data-active:hover:bg-[#d9562d] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:hover:bg-sidebar-accent group-data-[collapsible=icon]:data-active:bg-[#ec6338] group-data-[collapsible=icon]:data-active:hover:bg-[#d9562d]"
+              render={<Link href="/dashboard/settings" aria-label="Settings" />}
+            >
+              <Settings2 />
+              <span className="group-data-[collapsible=icon]:hidden">Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <div className="flex min-h-9 items-center justify-between gap-3 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <span className="text-xs font-medium text-sidebar-primary-foreground/70 dark:text-[#615f59] group-data-[collapsible=icon]:hidden">Account</span>
           <UserButton />

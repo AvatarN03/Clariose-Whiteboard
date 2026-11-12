@@ -65,6 +65,7 @@ export async function POST(
         .returning({
           token: boardShares.token,
           email: boardShares.email,
+          recipientUserId: boardShares.recipientUserId,
           permission: boardShares.permission,
         });
       share = inserted[0];
